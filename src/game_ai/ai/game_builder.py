@@ -33,21 +33,38 @@ class GameBuilder:
         self.current_game_content = ""
         self.game_type = None
         
-        # Get initial greeting
-        response = self.client.generate_response(
-            messages=[{"role": "user", "content": GAME_TYPE_PROMPT}],
-            system_prompt=SYSTEM_PROMPT,
-            use_grounding=False
-        )
+        # Fixed welcome message
+        welcome_message = """Welcome to Game AI! 🎮
+
+I'll help you build game theory models in strategic form (.nfg) or extensive form (.efg) format, and we can compute Nash equilibria together.
+
+**To get started, tell me:**
+- What type of game do you want to create?
+  - **Strategic form** (normal form) for simultaneous move games
+  - **Extensive form** (game tree) for sequential move games
+- What is your game about?
+- Who are the players?
+
+**Example prompts:**
+- "I want to create a prisoner's dilemma game"
+- "Build a sequential entry game with two firms"
+- "Create a coordination game about technology standards"
+
+**Available commands:**
+Type `/help` at any time to see available commands like `/solve`, `/save`, `/validate`, etc.
+
+**Tip:** Hold **Shift** while dragging to select and copy text from the chat.
+
+Let's build your game!"""
         
         self.conversation_history.append({
             "role": "assistant",
-            "content": response["text"]
+            "content": welcome_message
         })
         
         return {
-            "text": response["text"],
-            "sources": response["sources"]
+            "text": welcome_message,
+            "sources": []
         }
     
     def send_message(

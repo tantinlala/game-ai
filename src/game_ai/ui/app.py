@@ -16,6 +16,9 @@ from ..chat.command_handler import CommandHandler
 class GameAIApp(App):
     """Main application for game theory builder."""
     
+    # Enable mouse support but allow text selection with Shift
+    ENABLE_COMMAND_PALETTE = False
+    
     CSS = """
     Screen {
         background: $surface;

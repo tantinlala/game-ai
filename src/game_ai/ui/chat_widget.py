@@ -4,6 +4,7 @@ from typing import Optional, TYPE_CHECKING
 from textual.widgets import Static, Input, RichLog
 from textual.containers import Vertical, ScrollableContainer
 from textual.message import Message
+from textual import work
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.text import Text
@@ -107,13 +108,23 @@ class ChatWidget(Vertical):
         Args:
             command: Command string.
         """
-        if not self.command_handler or not self.game_builder:
+        if not self.command_handler or not self.game_builder or not self.editor_widget:
             return
+        
+        # Get current editor content (reflects any manual edits)
+        current_editor_content = self.editor_widget.get_content()
+        
+        # Detect game type from editor content
+        game_type = None
+        if current_editor_content.strip().startswith("NFG"):
+            game_type = "nfg"
+        elif current_editor_content.strip().startswith("EFG"):
+            game_type = "efg"
         
         context = {
             'conversation_history': self.game_builder.get_conversation_history(),
-            'game_content': self.game_builder.current_game_content,
-            'game_type': self.game_builder.game_type
+            'game_content': current_editor_content,  # Use live editor content
+            'game_type': game_type
         }
         
         result = self.command_handler.handle_command(command, context)
@@ -145,6 +156,9 @@ class ChatWidget(Vertical):
         if not self.game_builder or not self.editor_widget:
             return
         
+        # Show loading indicator
+        self.show_loading()
+        
         # Check for editor changes
         current_editor_content = self.editor_widget.get_content()
         file_diff = None
@@ -154,9 +168,22 @@ class ChatWidget(Vertical):
             file_diff = f"Editor content updated:\n```\n{current_editor_content}\n```"
             self.last_editor_content = current_editor_content
         
-        # Send to AI
+        # Send to AI (run async)
+        self.process_ai_response(message, file_diff)
+    
+    @work(exclusive=True)
+    async def process_ai_response(self, message: str, file_diff: Optional[str]):
+        """Process AI response asynchronously.
+        
+        Args:
+            message: User message.
+            file_diff: Optional file diff.
+        """
         try:
             response = self.game_builder.send_message(message, file_diff=file_diff)
+            
+            # Hide loading indicator
+            self.hide_loading()
             
             # Update editor if new content
             if response.get('file_content'):
@@ -167,7 +194,28 @@ class ChatWidget(Vertical):
             self.display_assistant_message(response['text'], response.get('sources', []))
         
         except Exception as e:
+            self.hide_loading()
             self.display_error_message(f"Error: {str(e)}")
+    
+    def show_loading(self):
+        """Show loading indicator while waiting for AI response."""
+        log = self.query_one("#message-container", RichLog)
+        
+        # Create a loading panel with animated dots
+        loading_text = Text("●●●", style="dim green")
+        panel = Panel(
+            loading_text,
+            title="AI Assistant",
+            title_align="left",
+            border_style="dim green"
+        )
+        log.write(panel)
+    
+    def hide_loading(self):
+        """Hide loading indicator."""
+        # The loading message will be replaced by the actual response
+        # so we don't need to explicitly remove it
+        pass
     
     def display_user_message(self, message: str):
         """Display user message in chat.
@@ -185,7 +233,7 @@ class ChatWidget(Vertical):
         )
         log.write(panel)
     
-    def display_assistant_message(self, message: str, sources: list = None):
+    def display_assistant_message(self, message: str, sources: Optional[list] = None):
         """Display assistant message in chat.
         
         Args:

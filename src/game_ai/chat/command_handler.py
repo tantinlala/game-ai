@@ -63,15 +63,26 @@ class CommandHandler:
 • `/save <name>` - Save current session with given name
 • `/load <name>` - Load a saved session
 • `/list` - List all saved sessions
-• `/solve` - Compute Nash equilibria for current game
+• `/solve [solver]` - Compute Nash equilibria for current game
+  - Optional solvers: `enumpure`, `enummixed`, `lcp`, `lp`, `liap`, `gnm`
+  - Example: `/solve lcp` or just `/solve` for auto-selection
 • `/validate` - Validate current game file syntax
 • `/export <path>` - Export game file to disk (e.g., /export game.nfg)
 • `/clear` - Clear current session and start fresh
+
+**Available Solvers:**
+• `enumpure` - Pure strategy enumeration (all games)
+• `enummixed` - Mixed strategy enumeration (2-player)
+• `lcp` - Linear complementarity (2-player, most reliable)
+• `lp` - Linear programming (2-player zero-sum)
+• `liap` - Lyapunov minimization (N-player)
+• `gnm` - Global Newton method (N-player)
 
 **Tips:**
 - Manual edits to the game file are sent as context with your next message
 - Use `/validate` before `/solve` to check for errors
 - Save your work frequently with `/save`
+- Hold **Shift** while dragging to select and copy text from chat
 """
         return {
             'success': True,
@@ -163,6 +174,9 @@ class CommandHandler:
                 'message': "No game file to solve. Create a game first through conversation."
             }
         
+        # Parse solver argument if provided
+        solver = args.strip() if args.strip() else None
+        
         # Validate first
         errors = GameValidator.validate(game_content)
         if errors:
@@ -180,8 +194,8 @@ class CommandHandler:
                 'message': error_text
             }
         
-        # Solve game
-        result = GameSolver.solve_from_content(game_content)
+        # Solve game with optional solver
+        result = GameSolver.solve_from_content(game_content, solver=solver)
         
         if not result.is_success():
             return {
