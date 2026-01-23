@@ -4,7 +4,6 @@ from typing import Dict, List, Optional, Any
 from .gemini_client import GeminiClient
 from .prompts import (
     SYSTEM_PROMPT,
-    GAME_TYPE_PROMPT,
     FILE_EDIT_PROMPT
 )
 
@@ -84,7 +83,7 @@ Let's build your game!"""
         # If there's a file diff, prepend it to the message
         if file_diff:
             context_message = FILE_EDIT_PROMPT.format(diff=file_diff)
-            augmented_message = f"{context_message}\n\nUser's message: {user_message}"
+            augmented_message = f"User's game file edits:\n\n{context_message}\n\nUser's message:\n\n{user_message}"
         else:
             augmented_message = user_message
         

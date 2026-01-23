@@ -209,33 +209,63 @@ class CommandHandler:
                 'message': "No Nash equilibria found."
             }
         
-        # Format results
-        message = "**Nash Equilibria Found:**\n\n"
-        message += f"Game: {result.game_info.get('title', 'Untitled')}\n"
-        message += f"Players: {', '.join(result.game_info.get('players', []))}\n"
-        message += f"Total equilibria: {len(result.equilibria)}\n\n"
+        # Format results with improved readability
+        message = "## 🎯 Nash Equilibria Found\n\n"
+        
+        # Game info summary
+        message += f"**Game:** {result.game_info.get('title', 'Untitled')}\n"
+        message += f"\n**Players:** {', '.join(result.game_info.get('players', []))}\n"
+        
+        # Game properties
+        props = []
+        if result.game_info.get('num_players'):
+            props.append(f"{result.game_info['num_players']}-player")
+        if result.game_info.get('is_const_sum'):
+            props.append("constant-sum")
+        if result.game_info.get('is_perfect_recall') is False:
+            props.append("imperfect recall")
+        
+        if props:
+            message += f"\n**Properties:** {', '.join(props)}\n"
+        
+        message += f"\n**Found:** {len(result.equilibria)} equilibrium/equilibria\n"
+        message += "\n" + "─" * 50 + "\n\n"
         
         for i, eq in enumerate(result.equilibria, 1):
-            eq_type = "Pure Strategy" if eq['is_pure'] else "Mixed Strategy"
-            message += f"**Equilibrium {i}** ({eq_type}):\n\n"
+            eq_type = "🎲 Pure Strategy" if eq['is_pure'] else "🎰 Mixed Strategy"
+            message += f"### {eq_type} Equilibrium"
+            if len(result.equilibria) > 1:
+                message += f" #{i}"
+            message += "\n\n"
             
-            # Show strategies
+            # Show strategies in a cleaner format
             for player, strategies in eq['strategies'].items():
-                message += f"• **{player}:**\n"
-                for strategy, prob in strategies.items():
-                    if prob > 0.001:  # Only show non-zero probabilities
-                        if eq['is_pure']:
-                            message += f"  - {strategy}\n"
-                        else:
-                            message += f"  - {strategy}: {prob:.1%}\n"
+                message += f"**{player}:**\n\n"
+                
+                active_strats = [(s, p) for s, p in strategies.items() if p > 0.001]
+                
+                if eq['is_pure']:
+                    # For pure strategies, just show the chosen strategy
+                    chosen = [s for s, p in active_strats if p > 0.99]
+                    if chosen:
+                        message += f"  → `{chosen[0]}`\n\n"
+                else:
+                    # For mixed strategies, show probability distribution
+                    for strategy, prob in sorted(active_strats, key=lambda x: -x[1]):
+                        bar_length = int(prob * 20)  # Visual bar up to 20 chars
+                        bar = "█" * bar_length + "░" * (20 - bar_length)
+                        message += f"  • {strategy:<20} {bar} {prob:>6.1%}\n\n"
             
-            # Show payoffs if available
+            # Show payoffs in a cleaner table-like format
             if eq['payoffs']:
-                message += "\n**Payoffs:**\n"
+                message += "\n**Expected Payoffs:**\n\n"
                 for player, payoff in eq['payoffs'].items():
-                    message += f"  - {player}: {payoff:.4f}\n"
+                    message += f"  • {player:<20} {payoff:>8.4f}\n\n"
             
-            message += "\n"
+            if i < len(result.equilibria):
+                message += "\n" + "─" * 50 + "\n\n"
+            else:
+                message += "\n\n"
         
         return {
             'success': True,

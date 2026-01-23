@@ -2,8 +2,9 @@
 
 import tempfile
 import os
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable
 from pathlib import Path
+import pygambit as gbt
 
 
 class SolverResult:
@@ -31,7 +32,7 @@ class SolverResult:
 class GameSolver:
     """Nash equilibrium solver using PyGambit."""
     
-    # Available solvers
+    # Available solvers with descriptions
     AVAILABLE_SOLVERS = {
         'enumpure': 'Pure strategy enumeration',
         'enummixed': 'Mixed strategy enumeration (2-player)',
@@ -42,7 +43,32 @@ class GameSolver:
     }
     
     @staticmethod
-    def solve_from_content(content: str, solver: str = None) -> SolverResult:
+    def _get_solver_function(solver_name: str, game) -> Optional[Callable]:
+        """Get the solver function for a given solver name.
+        
+        Args:
+            solver_name: Name of the solver.
+            game: PyGambit game object.
+            
+        Returns:
+            Callable that executes the solver, or None if solver doesn't exist.
+        """
+        solver_name = solver_name.lower()
+        
+        # Map solver names to their execution functions
+        solver_map = {
+            'enumpure': lambda: gbt.nash.enumpure_solve(game),
+            'enummixed': lambda: gbt.nash.enummixed_solve(game),
+            'lcp': lambda: gbt.nash.lcp_solve(game),
+            'lp': lambda: gbt.nash.lp_solve(game),
+            'liap': lambda: gbt.nash.liap_solve(game.mixed_strategy_profile()),
+            'gnm': lambda: gbt.nash.gnm_solve(game),
+        }
+        
+        return solver_map.get(solver_name)
+    
+    @staticmethod
+    def solve_from_content(content: str, solver: Optional[str] = None) -> SolverResult:
         """Solve game from file content.
         
         Args:
@@ -69,7 +95,7 @@ class GameSolver:
             return result
     
     @staticmethod
-    def _solve_nfg(content: str, solver: str = None) -> SolverResult:
+    def _solve_nfg(content: str, solver: Optional[str] = None) -> SolverResult:
         """Solve strategic form game.
         
         Args:
@@ -82,8 +108,6 @@ class GameSolver:
         result = SolverResult()
         
         try:
-            import pygambit as gbt
-            
             # Write content to temporary file
             with tempfile.NamedTemporaryFile(mode='w', suffix='.nfg', delete=False) as f:
                 f.write(content)
@@ -91,7 +115,7 @@ class GameSolver:
             
             try:
                 # Load game
-                game = gbt.read_nfg(temp_path)
+                game = gbt.read_nfg(temp_path) # type: ignore
                 
                 # Store game info
                 result.game_info = {
@@ -114,80 +138,49 @@ class GameSolver:
                         result.set_error(f"Unknown solver: {solver}. Available: {', '.join(GameSolver.AVAILABLE_SOLVERS.keys())}")
                         return result
                     
+                    solver_func = GameSolver._get_solver_function(solver, game)
+                    if solver_func is None:
+                        result.set_error(f"Solver '{solver}' not available")
+                        return result
+                    
                     try:
-                        if solver == 'enumpure':
-                            nash_result = gbt.nash.enumpure_solve(game)
-                            equilibria = list(nash_result.equilibria)
-                        elif solver == 'enummixed':
-                            nash_result = gbt.nash.enummixed_solve(game)
-                            equilibria = list(nash_result.equilibria)
-                        elif solver == 'lcp':
-                            nash_result = gbt.nash.lcp_solve(game)
-                            equilibria = list(nash_result.equilibria)
-                        elif solver == 'lp':
-                            nash_result = gbt.nash.lp_solve(game)
-                            equilibria = list(nash_result.equilibria)
-                        elif solver == 'liap':
-                            # LIAP requires a starting profile
-                            start_profile = game.mixed_strategy_profile()
-                            nash_result = gbt.nash.liap_solve(start_profile)
-                            equilibria = list(nash_result.equilibria)
-                        elif solver == 'gnm':
-                            nash_result = gbt.nash.gnm_solve(game)
-                            equilibria = list(nash_result.equilibria)
+                        nash_result = solver_func()
+                        equilibria = list(nash_result.equilibria)
                     except Exception as e:
                         result.set_error(f"Solver '{solver}' failed: {str(e)}")
                         return result
                 else:
-                    # Try multiple solvers automatically
-                    # Try pure strategy equilibria first
-                    try:
-                        nash_result = gbt.nash.enumpure_solve(game)
-                        equilibria.extend(nash_result.equilibria)
-                    except Exception as e:
-                        solver_errors.append(f"enumpure: {str(e)}")
+                    # Try multiple solvers automatically in priority order
+                    # Priority order optimized for game type
+                    solver_order = ['enumpure']  # Always try pure first
                     
-                    # For 2-player games, try multiple solvers
                     if len(game.players) == 2:
-                        # Try LCP solver first (works for most 2-player games)
-                        if not equilibria:
-                            try:
-                                nash_result = gbt.nash.lcp_solve(game)
-                                equilibria.extend(nash_result.equilibria)
-                            except Exception as e:
-                                solver_errors.append(f"lcp: {str(e)}")
-                        
-                        # Try LP solver for constant-sum games
-                        if game.is_const_sum and not equilibria:
-                            try:
-                                nash_result = gbt.nash.lp_solve(game)
-                                equilibria.extend(nash_result.equilibria)
-                            except Exception as e:
-                                solver_errors.append(f"lp: {str(e)}")
-                        
-                        # Fall back to enumeration for small games
-                        if not equilibria:
-                            try:
-                                nash_result = gbt.nash.enummixed_solve(game)
-                                equilibria.extend(nash_result.equilibria)
-                            except Exception as e:
-                                solver_errors.append(f"enummixed: {str(e)}")
+                        # 2-player games: try LCP, then LP for const-sum, then enummixed
+                        solver_order.extend(['lcp'])
+                        if game.is_const_sum:
+                            solver_order.append('lp')
+                        solver_order.extend(['enummixed', 'liap', 'gnm'])
                     else:
-                        # For N-player games, try available solvers
-                        if not equilibria:
-                            try:
-                                start_profile = game.mixed_strategy_profile()
-                                nash_result = gbt.nash.liap_solve(start_profile)
-                                equilibria.extend(nash_result.equilibria)
-                            except Exception as e:
-                                solver_errors.append(f"liap: {str(e)}")
+                        # N-player games: try approximate methods
+                        solver_order.extend(['liap', 'gnm'])
+                    
+                    # Try each solver in order until we find equilibria
+                    for solver_name in solver_order:
+                        if solver_name not in GameSolver.AVAILABLE_SOLVERS:
+                            continue
                         
-                        if not equilibria:
-                            try:
-                                nash_result = gbt.nash.gnm_solve(game)
-                                equilibria.extend(nash_result.equilibria)
-                            except Exception as e:
-                                solver_errors.append(f"gnm: {str(e)}")
+                        if equilibria:  # Stop if we found equilibria
+                            break
+                        
+                        solver_func = GameSolver._get_solver_function(solver_name, game)
+                        if solver_func is None:
+                            continue
+                        
+                        try:
+                            nash_result = solver_func()
+                            equilibria.extend(nash_result.equilibria)
+                        except Exception as e:
+                            solver_errors.append(f"{solver_name}: {str(e)}")
                 
                 # Process equilibria
                 for eq in equilibria:
@@ -212,7 +205,7 @@ class GameSolver:
         return result
     
     @staticmethod
-    def _solve_efg(content: str, solver: str = None) -> SolverResult:
+    def _solve_efg(content: str, solver: Optional[str] = None) -> SolverResult:
         """Solve extensive form game.
         
         Args:
@@ -225,8 +218,6 @@ class GameSolver:
         result = SolverResult()
         
         try:
-            import pygambit as gbt
-            
             # Write content to temporary file
             with tempfile.NamedTemporaryFile(mode='w', suffix='.efg', delete=False) as f:
                 f.write(content)
@@ -234,7 +225,7 @@ class GameSolver:
             
             try:
                 # Load game
-                game = gbt.read_efg(temp_path)
+                game = gbt.read_efg(temp_path) # type: ignore
                 
                 # Store game info
                 result.game_info = {
@@ -255,62 +246,37 @@ class GameSolver:
                         result.set_error(f"Unknown solver: {solver}. Available: {', '.join(GameSolver.AVAILABLE_SOLVERS.keys())}")
                         return result
                     
+                    solver_func = GameSolver._get_solver_function(solver, game)
+                    if solver_func is None:
+                        result.set_error(f"Solver '{solver}' not available")
+                        return result
+                    
                     try:
-                        if solver == 'enumpure':
-                            nash_result = gbt.nash.enumpure_solve(game)
-                            equilibria = list(nash_result.equilibria)
-                        elif solver == 'enummixed':
-                            nash_result = gbt.nash.enummixed_solve(game)
-                            equilibria = list(nash_result.equilibria)
-                        elif solver == 'lcp':
-                            nash_result = gbt.nash.lcp_solve(game)
-                            equilibria = list(nash_result.equilibria)
-                        elif solver == 'lp':
-                            nash_result = gbt.nash.lp_solve(game)
-                            equilibria = list(nash_result.equilibria)
-                        elif solver == 'liap':
-                            # LIAP requires a starting profile
-                            start_profile = game.mixed_strategy_profile()
-                            nash_result = gbt.nash.liap_solve(start_profile)
-                            equilibria = list(nash_result.equilibria)
-                        elif solver == 'gnm':
-                            nash_result = gbt.nash.gnm_solve(game)
-                            equilibria = list(nash_result.equilibria)
+                        nash_result = solver_func()
+                        equilibria = list(nash_result.equilibria)
                     except Exception as e:
                         result.set_error(f"Solver '{solver}' failed: {str(e)}")
                         return result
                 else:
-                    # Try pure strategy equilibria
-                    try:
-                        nash_result = gbt.nash.enumpure_solve(game)
-                        equilibria.extend(nash_result.equilibria)
-                    except Exception as e:
-                        solver_errors.append(f"enumpure: {str(e)}")
+                    # Try multiple solvers automatically
+                    solver_order = ['enumpure', 'lcp', 'enummixed', 'liap']
                     
-                    # For 2-player games
-                    if len(game.players) == 2:
-                        if not equilibria:
-                            try:
-                                nash_result = gbt.nash.lcp_solve(game)
-                                equilibria.extend(nash_result.equilibria)
-                            except Exception as e:
-                                solver_errors.append(f"lcp: {str(e)}")
+                    for solver_name in solver_order:
+                        if solver_name not in GameSolver.AVAILABLE_SOLVERS:
+                            continue
                         
-                        if not equilibria:
-                            try:
-                                nash_result = gbt.nash.enummixed_solve(game)
-                                equilibria.extend(nash_result.equilibria)
-                            except Exception as e:
-                                solver_errors.append(f"enummixed: {str(e)}")
-                    else:
-                        # N-player games
-                        if not equilibria:
-                            try:
-                                start_profile = game.mixed_strategy_profile()
-                                nash_result = gbt.nash.liap_solve(start_profile)
-                                equilibria.extend(nash_result.equilibria)
-                            except Exception as e:
-                                solver_errors.append(f"liap: {str(e)}")
+                        if equilibria:  # Stop if we found equilibria
+                            break
+                        
+                        solver_func = GameSolver._get_solver_function(solver_name, game)
+                        if solver_func is None:
+                            continue
+                        
+                        try:
+                            nash_result = solver_func()
+                            equilibria.extend(nash_result.equilibria)
+                        except Exception as e:
+                            solver_errors.append(f"{solver_name}: {str(e)}")
                 
                 # Process equilibria
                 for eq in equilibria:
@@ -322,9 +288,6 @@ class GameSolver:
                     if solver_errors:
                         error_msg += "\n\nSolver errors encountered:\n" + "\n".join(f"• {err}" for err in solver_errors[:3])
                     result.set_error(error_msg)
-                
-                if not result.equilibria:
-                    result.set_error("No Nash equilibria found (this may indicate solver limitations)")
             
             finally:
                 # Clean up temporary file

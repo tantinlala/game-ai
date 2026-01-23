@@ -28,11 +28,6 @@ SYSTEM_PROMPT = """You are an expert game theory assistant helping users build s
 
 Remember: You help BUILD games iteratively. Users will refine games over multiple messages. The current game file is always visible in the editor pane."""
 
-GAME_TYPE_PROMPT = """The user wants to create a game. Ask them:
-1. What type of game: strategic form (normal form, simultaneous moves) or extensive form (game tree, sequential moves)?
-2. What is the game about? (This helps with naming and finding realistic payoff data)
-3. Who are the players?"""
-
 STRATEGIC_FORM_PROMPT = """For a strategic form game, guide the user through:
 1. How many players? (typically 2-4 for tractability)
 2. What strategies/actions does each player have?
