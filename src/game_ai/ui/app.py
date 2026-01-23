@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 from .chat_widget import ChatWidget
 from .editor_widget import EditorWidget
+from .visualization_widget import VisualizationWidget
 from ..ai.game_builder import GameBuilder
 from ..chat.session_manager import SessionManager
 from ..chat.command_handler import CommandHandler
@@ -29,12 +30,17 @@ class GameAIApp(App):
     }
     
     ChatWidget {
-        width: 1fr;
+        width: 2fr;
         border-right: solid $primary;
     }
     
     EditorWidget {
-        width: 1fr;
+        width: 2fr;
+        border-right: solid $primary;
+    }
+    
+    VisualizationWidget {
+        width: 3fr;
     }
     """
     
@@ -63,6 +69,7 @@ class GameAIApp(App):
         # References to widgets
         self.chat_widget: ChatWidget = None
         self.editor_widget: EditorWidget = None
+        self.visualization_widget: VisualizationWidget = None
     
     def compose(self) -> ComposeResult:
         """Create child widgets."""
@@ -71,6 +78,7 @@ class GameAIApp(App):
         with Horizontal():
             yield ChatWidget(id="chat")
             yield EditorWidget(id="editor")
+            yield VisualizationWidget(id="visualization")
         
         yield Footer()
     
@@ -84,16 +92,19 @@ class GameAIApp(App):
         # Get widget references
         self.chat_widget = self.query_one("#chat", ChatWidget)
         self.editor_widget = self.query_one("#editor", EditorWidget)
+        self.visualization_widget = self.query_one("#visualization", VisualizationWidget)
         
         # Connect widgets
         self.chat_widget.set_app_context(
             game_builder=self.game_builder,
             command_handler=self.command_handler,
-            editor_widget=self.editor_widget
+            editor_widget=self.editor_widget,
+            visualization_widget=self.visualization_widget
         )
         
         self.editor_widget.set_app_context(
-            chat_widget=self.chat_widget
+            chat_widget=self.chat_widget,
+            visualization_widget=self.visualization_widget
         )
         
         # Start conversation

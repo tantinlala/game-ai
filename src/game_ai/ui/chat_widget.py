@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from ..ai.game_builder import GameBuilder
     from ..chat.command_handler import CommandHandler
     from .editor_widget import EditorWidget
+    from .visualization_widget import VisualizationWidget
 
 
 class ChatWidget(Vertical):
@@ -47,6 +48,7 @@ class ChatWidget(Vertical):
         self.game_builder: Optional['GameBuilder'] = None
         self.command_handler: Optional['CommandHandler'] = None
         self.editor_widget: Optional['EditorWidget'] = None
+        self.visualization_widget: Optional['VisualizationWidget'] = None
         self.last_editor_content: str = ""
     
     def compose(self):
@@ -61,7 +63,8 @@ class ChatWidget(Vertical):
         self,
         game_builder: 'GameBuilder',
         command_handler: 'CommandHandler',
-        editor_widget: 'EditorWidget'
+        editor_widget: 'EditorWidget',
+        visualization_widget: 'VisualizationWidget'
     ):
         """Set application context.
         
@@ -69,10 +72,12 @@ class ChatWidget(Vertical):
             game_builder: GameBuilder instance.
             command_handler: CommandHandler instance.
             editor_widget: EditorWidget instance.
+            visualization_widget: VisualizationWidget instance.
         """
         self.game_builder = game_builder
         self.command_handler = command_handler
         self.editor_widget = editor_widget
+        self.visualization_widget = visualization_widget
     
     def start_conversation(self):
         """Start the conversation with AI greeting."""
@@ -332,6 +337,10 @@ class ChatWidget(Vertical):
             self.editor_widget.set_content(session_data['game_content'])
             self.last_editor_content = session_data['game_content']
         
+        # Update visualization
+        if session_data.get('game_content') and self.visualization_widget:
+            self.visualization_widget.set_content(session_data['game_content'])
+        
         # Replay conversation history in UI
         log = self.query_one("#message-container", RichLog)
         log.clear()
@@ -357,6 +366,10 @@ class ChatWidget(Vertical):
         # Clear editor
         self.editor_widget.set_content("")
         self.last_editor_content = ""
+        
+        # Clear visualization
+        if self.visualization_widget:
+            self.visualization_widget.clear()
         
         # Start new conversation
         self.start_conversation()

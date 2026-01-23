@@ -1,0 +1,358 @@
+"""Visualization widget for game files."""
+
+import re
+from typing import Optional, List, Tuple
+from textual.widgets import Static
+from textual.containers import Vertical
+from rich.table import Table
+from rich.text import Text
+from rich.console import Group
+from ..game.nfg_builder import NFGBuilder
+from ..game.efg_builder import EFGBuilder
+
+
+class VisualizationWidget(Static):
+    """Widget for visualizing game files (NFG and EFG formats)."""
+    
+    DEFAULT_CSS = """
+    VisualizationWidget {
+        height: 1fr;
+        overflow-y: auto;
+        overflow-x: auto;
+        padding: 1;
+        background: $surface;
+        border: solid $primary;
+    }
+    
+    VisualizationWidget > .visualization-content {
+        width: auto;
+        height: auto;
+    }
+    """
+    
+    def __init__(self, *args, **kwargs):
+        """Initialize visualization widget."""
+        super().__init__(*args, **kwargs)
+        self._content: str = ""
+        self._game_type: Optional[str] = None
+    
+    def set_content(self, content: str):
+        """Parse and visualize the game file content.
+        
+        Args:
+            content: Game file content (NFG or EFG format).
+        """
+        self._content = content
+        
+        if not content or not content.strip():
+            self.update(Text("No content to display", style="dim italic"))
+            return
+        
+        # Auto-detect game type
+        self._game_type = self._detect_game_type(content)
+        
+        try:
+            if self._game_type == "NFG":
+                self._visualize_nfg(content)
+            elif self._game_type == "EFG":
+                self._visualize_efg(content)
+            else:
+                self.update(Text("Unable to detect game format", style="red bold"))
+        except Exception as e:
+            self.update(Text(f"Error visualizing game: {str(e)}", style="red"))
+    
+    def clear(self):
+        """Clear the visualization."""
+        self._content = ""
+        self._game_type = None
+        self.update(Text("", style="dim"))
+    
+    def _detect_game_type(self, content: str) -> Optional[str]:
+        """Detect whether content is NFG or EFG format.
+        
+        Args:
+            content: Game file content.
+            
+        Returns:
+            "NFG", "EFG", or None if unable to detect.
+        """
+        first_line = content.strip().split('\n')[0] if content.strip() else ""
+        
+        if first_line.startswith("NFG"):
+            return "NFG"
+        elif first_line.startswith("EFG"):
+            return "EFG"
+        
+        return None
+    
+    def _visualize_nfg(self, content: str):
+        """Visualize NFG (strategic form) game as a payoff matrix.
+        
+        Args:
+            content: NFG file content.
+        """
+        try:
+            builder = NFGBuilder.from_nfg_string(content)
+            
+            # Create header text
+            header = Text()
+            header.append(f"Strategic Form Game: ", style="bold cyan")
+            header.append(builder.title, style="bold white")
+            header.append("\n\n")
+            
+            # For 2-player games, create a payoff matrix table
+            if len(builder.players) == 2:
+                table = self._create_2player_matrix(builder)
+                self.update(Group(header, table))
+            else:
+                # For n-player games (n > 2), display as structured text
+                info = self._create_nplayer_info(builder)
+                self.update(Group(header, info))
+                
+        except Exception as e:
+            raise ValueError(f"Failed to parse NFG content: {str(e)}")
+    
+    def _create_2player_matrix(self, builder: NFGBuilder) -> Table:
+        """Create a payoff matrix table for 2-player games.
+        
+        Args:
+            builder: NFGBuilder instance with parsed game data.
+            
+        Returns:
+            Rich Table with payoff matrix.
+        """
+        table = Table(
+            title=f"{builder.players[0]} (rows) vs {builder.players[1]} (columns)",
+            show_header=True,
+            header_style="bold magenta",
+            border_style="blue",
+            title_style="cyan"
+        )
+        
+        # Add column headers (Player 2's strategies)
+        table.add_column(f"{builder.players[0]} \\ {builder.players[1]}", style="cyan")
+        for j in range(builder.num_strategies[1]):
+            table.add_column(f"Strategy {j+1}", justify="center")
+        
+        # Add rows (Player 1's strategies)
+        num_strat_p1 = builder.num_strategies[0]
+        num_strat_p2 = builder.num_strategies[1]
+        num_players = len(builder.players)
+        
+        for i in range(num_strat_p1):
+            row = [f"Strategy {i+1}"]
+            for j in range(num_strat_p2):
+                # Calculate index in payoffs array
+                # NFG format: row-major order, first player's strategies vary fastest
+                outcome_idx = i * num_strat_p2 + j
+                payoff_idx = outcome_idx * num_players
+                
+                # Get payoffs for both players
+                p1_payoff = builder.payoffs[payoff_idx]
+                p2_payoff = builder.payoffs[payoff_idx + 1]
+                
+                # Format as (p1, p2)
+                payoff_str = f"({p1_payoff:.1f}, {p2_payoff:.1f})"
+                row.append(payoff_str)
+            
+            table.add_row(*row)
+        
+        return table
+    
+    def _create_nplayer_info(self, builder: NFGBuilder) -> Text:
+        """Create structured text info for n-player games.
+        
+        Args:
+            builder: NFGBuilder instance with parsed game data.
+            
+        Returns:
+            Rich Text with game information.
+        """
+        text = Text()
+        
+        # Players
+        text.append("Players: ", style="bold yellow")
+        text.append(", ".join(builder.players) + "\n\n", style="white")
+        
+        # Strategies
+        text.append("Strategies per player:\n", style="bold yellow")
+        for i, (player, num_strat) in enumerate(zip(builder.players, builder.num_strategies)):
+            text.append(f"  {player}: ", style="cyan")
+            text.append(f"{num_strat} strategies\n", style="white")
+        
+        text.append("\n")
+        
+        # Total outcomes
+        total_outcomes = 1
+        for num in builder.num_strategies:
+            total_outcomes *= num
+        
+        text.append(f"Total strategy profiles: ", style="bold yellow")
+        text.append(f"{total_outcomes}\n\n", style="white")
+        
+        # Note for n-player games
+        text.append("Note: ", style="bold red")
+        text.append(f"Full payoff matrix visualization is only available for 2-player games.\n", style="italic")
+        text.append(f"This game has {len(builder.players)} players.\n", style="italic")
+        
+        return text
+    
+    def _visualize_efg(self, content: str):
+        """Visualize EFG (extensive form) game as a text-based tree.
+        
+        Args:
+            content: EFG file content.
+        """
+        try:
+            builder = EFGBuilder.from_efg_string(content)
+            
+            # Create header text
+            header = Text()
+            header.append(f"Extensive Form Game: ", style="bold cyan")
+            header.append(builder.title, style="bold white")
+            header.append("\n")
+            header.append(f"Players: ", style="bold yellow")
+            header.append(", ".join(builder.players), style="white")
+            header.append("\n\n")
+            
+            # Parse and build tree structure
+            tree_text = self._build_tree_text(content, builder)
+            
+            self.update(Group(header, tree_text))
+            
+        except Exception as e:
+            raise ValueError(f"Failed to parse EFG content: {str(e)}")
+    
+    def _build_tree_text(self, content: str, builder: EFGBuilder) -> Text:
+        """Build ASCII tree representation of the game tree.
+        
+        Args:
+            content: EFG file content.
+            builder: EFGBuilder instance.
+            
+        Returns:
+            Rich Text with tree visualization.
+        """
+        lines = [l.strip() for l in content.strip().split('\n') if l.strip()]
+        
+        # Skip header lines (first 2-3 lines)
+        node_lines = []
+        for i, line in enumerate(lines):
+            if i >= 2 and (line.startswith('c ') or line.startswith('p ') or line.startswith('t ')):
+                node_lines.append(line)
+        
+        if not node_lines:
+            return Text("No nodes found in game tree", style="dim italic")
+        
+        # Parse nodes and build tree
+        tree = Text()
+        tree.append("Game Tree:\n", style="bold green")
+        tree.append("─" * 50 + "\n\n", style="dim")
+        
+        # Track tree structure (simplified, assumes prefix traversal)
+        indent_stack = [0]
+        last_node_type = None
+        
+        for i, line in enumerate(node_lines):
+            node_info = self._parse_node_line(line)
+            if not node_info:
+                continue
+            
+            node_type, name, player, actions, payoffs, outcome = node_info
+            
+            # Determine indentation level
+            if node_type == 't':  # Terminal node
+                indent = len(indent_stack)
+            elif i == 0:  # Root node
+                indent = 0
+                indent_stack = [0]
+            else:
+                # Heuristic: if previous was terminal, we backtrack
+                if last_node_type == 't':
+                    if indent_stack:
+                        indent_stack.pop()
+                    indent = len(indent_stack)
+                else:
+                    indent = len(indent_stack)
+                    if node_type != 't':
+                        indent_stack.append(indent)
+            
+            # Build the tree line
+            prefix = "  " * indent
+            
+            if node_type == 'c':
+                tree.append(prefix + "○ ", style="yellow bold")
+                tree.append(f"CHANCE: {name}\n", style="yellow")
+                if actions:
+                    for action in actions:
+                        tree.append(prefix + "  ├─ ", style="dim")
+                        tree.append(f"{action}\n", style="white")
+            
+            elif node_type == 'p':
+                player_name = builder.players[player - 1] if player and player <= len(builder.players) else f"Player {player}"
+                tree.append(prefix + "● ", style="cyan bold")
+                tree.append(f"{player_name}: {name}\n", style="cyan")
+                if actions:
+                    for action in actions:
+                        tree.append(prefix + "  ├─ ", style="dim")
+                        tree.append(f"{action}\n", style="white")
+            
+            elif node_type == 't':
+                tree.append(prefix + "■ ", style="green bold")
+                tree.append(f"Terminal: {name}\n", style="green")
+                if outcome:
+                    tree.append(prefix + "  ", style="dim")
+                    tree.append(f"Outcome: {outcome}\n", style="white dim")
+                if payoffs:
+                    tree.append(prefix + "  ", style="dim")
+                    payoff_str = ", ".join([f"{builder.players[i]}: {p:.1f}" for i, p in enumerate(payoffs)])
+                    tree.append(f"Payoffs: ({payoff_str})\n", style="magenta")
+            
+            last_node_type = node_type
+        
+        return tree
+    
+    def _parse_node_line(self, line: str) -> Optional[Tuple]:
+        """Parse a single node line from EFG format.
+        
+        Args:
+            line: Node line from EFG file.
+            
+        Returns:
+            Tuple of (node_type, name, player, actions, payoffs, outcome) or None.
+        """
+        try:
+            # Chance node: c "name" infoset "label" { "action" prob ... } outcome
+            if line.startswith('c '):
+                match = re.match(r'c\s+"([^"]*)"\s+\d+\s+"[^"]*"\s+\{([^}]*)\}', line)
+                if match:
+                    name = match.group(1)
+                    actions_str = match.group(2).strip()
+                    # Extract actions (ignore probabilities for visualization)
+                    actions = re.findall(r'"([^"]+)"', actions_str)
+                    return ('c', name, None, actions, [], "")
+            
+            # Player node: p "name" player infoset "label" { "action" ... } outcome
+            elif line.startswith('p '):
+                match = re.match(r'p\s+"([^"]*)"\s+(\d+)\s+\d+\s+"[^"]*"\s+\{([^}]*)\}', line)
+                if match:
+                    name = match.group(1)
+                    player = int(match.group(2))
+                    actions_str = match.group(3).strip()
+                    actions = re.findall(r'"([^"]+)"', actions_str)
+                    return ('p', name, player, actions, [], "")
+            
+            # Terminal node: t "name" outcome "outcome_name" { payoff1 payoff2 ... }
+            elif line.startswith('t '):
+                match = re.match(r't\s+"([^"]*)"\s+\d+\s+"([^"]*)"\s+\{([^}]*)\}', line)
+                if match:
+                    name = match.group(1)
+                    outcome = match.group(2)
+                    payoffs_str = match.group(3).strip()
+                    payoffs = [float(p) for p in payoffs_str.split()]
+                    return ('t', name, None, [], payoffs, outcome)
+        
+        except Exception:
+            pass
+        
+        return None
