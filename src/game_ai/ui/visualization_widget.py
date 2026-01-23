@@ -7,6 +7,7 @@ from textual.containers import Vertical
 from rich.table import Table
 from rich.text import Text
 from rich.console import Group
+from rich.tree import Tree
 from ..game.nfg_builder import NFGBuilder
 from ..game.efg_builder import EFGBuilder
 
@@ -198,7 +199,7 @@ class VisualizationWidget(Static):
         return text
     
     def _visualize_efg(self, content: str):
-        """Visualize EFG (extensive form) game as a text-based tree.
+        """Visualize EFG (extensive form) game as a Rich Tree.
         
         Args:
             content: EFG file content.
@@ -215,102 +216,108 @@ class VisualizationWidget(Static):
             header.append(", ".join(builder.players), style="white")
             header.append("\n\n")
             
-            # Parse and build tree structure
-            tree_text = self._build_tree_text(content, builder)
+            # Parse nodes
+            nodes = self._parse_all_nodes(content)
+            if not nodes:
+                self.update(Group(header, Text("No nodes found in game tree", style="dim italic")))
+                return
             
-            self.update(Group(header, tree_text))
+            # Create tree visualization
+            tree = Tree("🎮 Game Tree", guide_style="bold bright_blue")
+            self._build_rich_tree(tree, nodes, 0, builder)
+            
+            self.update(Group(header, tree))
             
         except Exception as e:
             raise ValueError(f"Failed to parse EFG content: {str(e)}")
     
-    def _build_tree_text(self, content: str, builder: EFGBuilder) -> Text:
-        """Build ASCII tree representation of the game tree.
+    def _parse_all_nodes(self, content: str) -> List[Tuple]:
+        """Parse all nodes from EFG content.
         
         Args:
             content: EFG file content.
-            builder: EFGBuilder instance.
             
         Returns:
-            Rich Text with tree visualization.
+            List of parsed nodes.
         """
         lines = [l.strip() for l in content.strip().split('\n') if l.strip()]
         
-        # Skip header lines (first 2-3 lines)
-        node_lines = []
+        nodes = []
         for i, line in enumerate(lines):
             if i >= 2 and (line.startswith('c ') or line.startswith('p ') or line.startswith('t ')):
-                node_lines.append(line)
+                node_info = self._parse_node_line(line)
+                if node_info:
+                    nodes.append(node_info)
         
-        if not node_lines:
-            return Text("No nodes found in game tree", style="dim italic")
+        return nodes
+    
+    def _build_rich_tree(self, parent_tree, nodes: list, index: int, builder: EFGBuilder) -> int:
+        """Recursively build Rich Tree from parsed nodes.
         
-        # Parse nodes and build tree
-        tree = Text()
-        tree.append("Game Tree:\n", style="bold green")
-        tree.append("─" * 50 + "\n\n", style="dim")
-        
-        # Track tree structure (simplified, assumes prefix traversal)
-        indent_stack = [0]
-        last_node_type = None
-        
-        for i, line in enumerate(node_lines):
-            node_info = self._parse_node_line(line)
-            if not node_info:
-                continue
+        Args:
+            parent_tree: Parent Tree or tree node to attach to.
+            nodes: List of all parsed nodes.
+            index: Current node index.
+            builder: EFGBuilder instance.
             
-            node_type, name, player, actions, payoffs, outcome = node_info
+        Returns:
+            Next node index to process.
+        """
+        if index >= len(nodes):
+            return index
+        
+        node_type, name, player, actions, payoffs, outcome = nodes[index]
+        
+        # Create node label and add to tree
+        node = None
+        if node_type == 'c':
+            label = Text()
+            label.append("○ CHANCE", style="yellow bold")
+            if name:
+                label.append(f" {name}", style="yellow")
+            node = parent_tree.add(label)
             
-            # Determine indentation level
-            if node_type == 't':  # Terminal node
-                indent = len(indent_stack)
-            elif i == 0:  # Root node
-                indent = 0
-                indent_stack = [0]
+        elif node_type == 'p':
+            player_name = builder.players[player - 1] if player and player <= len(builder.players) else f"Player {player}"
+            label = Text()
+            label.append(f"● {player_name}", style="cyan bold")
+            if name:
+                label.append(f" {name}", style="cyan")
+            node = parent_tree.add(label)
+            
+        elif node_type == 't':
+            label = Text()
+            label.append("■ ", style="green bold")
+            if outcome:
+                label.append(outcome, style="green")
             else:
-                # Heuristic: if previous was terminal, we backtrack
-                if last_node_type == 't':
-                    if indent_stack:
-                        indent_stack.pop()
-                    indent = len(indent_stack)
-                else:
-                    indent = len(indent_stack)
-                    if node_type != 't':
-                        indent_stack.append(indent)
+                label.append("Terminal", style="green")
             
-            # Build the tree line
-            prefix = "  " * indent
+            if payoffs:
+                label.append(" → ", style="dim")
+                payoff_str = ", ".join([f"{builder.players[i]}: {p:.1f}" for i, p in enumerate(payoffs)])
+                label.append(f"({payoff_str})", style="magenta bold")
             
-            if node_type == 'c':
-                tree.append(prefix + "○ ", style="yellow bold")
-                tree.append(f"CHANCE: {name}\n", style="yellow")
-                if actions:
-                    for action in actions:
-                        tree.append(prefix + "  ├─ ", style="dim")
-                        tree.append(f"{action}\n", style="white")
-            
-            elif node_type == 'p':
-                player_name = builder.players[player - 1] if player and player <= len(builder.players) else f"Player {player}"
-                tree.append(prefix + "● ", style="cyan bold")
-                tree.append(f"{player_name}: {name}\n", style="cyan")
-                if actions:
-                    for action in actions:
-                        tree.append(prefix + "  ├─ ", style="dim")
-                        tree.append(f"{action}\n", style="white")
-            
-            elif node_type == 't':
-                tree.append(prefix + "■ ", style="green bold")
-                tree.append(f"Terminal: {name}\n", style="green")
-                if outcome:
-                    tree.append(prefix + "  ", style="dim")
-                    tree.append(f"Outcome: {outcome}\n", style="white dim")
-                if payoffs:
-                    tree.append(prefix + "  ", style="dim")
-                    payoff_str = ", ".join([f"{builder.players[i]}: {p:.1f}" for i, p in enumerate(payoffs)])
-                    tree.append(f"Payoffs: ({payoff_str})\n", style="magenta")
-            
-            last_node_type = node_type
+            parent_tree.add(label)
+            return index + 1
         
-        return tree
+        # Process children if not terminal and node was created
+        if node and actions and node_type != 't':
+            next_index = index + 1
+            
+            for action in actions:
+                # Create branch with action label
+                action_label = Text()
+                action_label.append(f"[{action}]", style="white bold")
+                branch = node.add(action_label)
+                
+                # Add child node
+                if next_index < len(nodes):
+                    next_index = self._build_rich_tree(branch, nodes, next_index, builder)
+            
+            return next_index
+        
+        return index + 1
     
     def _parse_node_line(self, line: str) -> Optional[Tuple]:
         """Parse a single node line from EFG format.
