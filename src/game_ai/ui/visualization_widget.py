@@ -15,6 +15,16 @@ from ..game.efg_builder import EFGBuilder
 class VisualizationWidget(Static):
     """Widget for visualizing game files (NFG and EFG formats)."""
     
+    # Player color scheme
+    PLAYER_COLORS = [
+        "cyan",      # Player 1
+        "magenta",   # Player 2
+        "green",     # Player 3
+        "yellow",    # Player 4
+        "blue",      # Player 5
+        "red",       # Player 6
+    ]
+    
     DEFAULT_CSS = """
     VisualizationWidget {
         height: 1fr;
@@ -67,6 +77,19 @@ class VisualizationWidget(Static):
         self._content = ""
         self._game_type = None
         self.update(Text("", style="dim"))
+    
+    def _get_player_color(self, player_index: int) -> str:
+        """Get color for a player.
+        
+        Args:
+            player_index: Player index (0-based).
+            
+        Returns:
+            Color name for the player.
+        """
+        if player_index >= len(self.PLAYER_COLORS):
+            return "white"
+        return self.PLAYER_COLORS[player_index]
     
     def _detect_game_type(self, content: str) -> Optional[str]:
         """Detect whether content is NFG or EFG format.
@@ -122,18 +145,28 @@ class VisualizationWidget(Static):
         Returns:
             Rich Table with payoff matrix.
         """
+        # Get player colors
+        p1_color = self._get_player_color(0)
+        p2_color = self._get_player_color(1)
+        
         table = Table(
             title=f"{builder.players[0]} (rows) vs {builder.players[1]} (columns)",
             show_header=True,
-            header_style="bold magenta",
+            header_style="bold white",
             border_style="blue",
-            title_style="cyan"
+            title_style="white bold"
         )
         
         # Add column headers (Player 2's strategies)
-        table.add_column(f"{builder.players[0]} \\ {builder.players[1]}", style="cyan")
+        header_label = Text()
+        header_label.append(f"{builder.players[0]}", style=f"{p1_color} bold")
+        header_label.append(" \\ ", style="white")
+        header_label.append(f"{builder.players[1]}", style=f"{p2_color} bold")
+        table.add_column(header_label, style="white")
+        
         for j in range(builder.num_strategies[1]):
-            table.add_column(f"Strategy {j+1}", justify="center")
+            col_header = Text(f"Strategy {j+1}", style=f"{p2_color} bold")
+            table.add_column(col_header, justify="center")
         
         # Add rows (Player 1's strategies)
         num_strat_p1 = builder.num_strategies[0]
@@ -141,7 +174,9 @@ class VisualizationWidget(Static):
         num_players = len(builder.players)
         
         for i in range(num_strat_p1):
-            row = [f"Strategy {i+1}"]
+            row_label = Text(f"Strategy {i+1}", style=f"{p1_color} bold")
+            row = [row_label]
+            
             for j in range(num_strat_p2):
                 # Calculate index in payoffs array
                 # NFG format: row-major order, first player's strategies vary fastest
@@ -152,9 +187,14 @@ class VisualizationWidget(Static):
                 p1_payoff = builder.payoffs[payoff_idx]
                 p2_payoff = builder.payoffs[payoff_idx + 1]
                 
-                # Format as (p1, p2)
-                payoff_str = f"({p1_payoff:.1f}, {p2_payoff:.1f})"
-                row.append(payoff_str)
+                # Format with player colors
+                payoff_text = Text("(")
+                payoff_text.append(f"{p1_payoff:.1f}", style=f"{p1_color} bold")
+                payoff_text.append(", ", style="white")
+                payoff_text.append(f"{p2_payoff:.1f}", style=f"{p2_color} bold")
+                payoff_text.append(")", style="white")
+                
+                row.append(payoff_text)
             
             table.add_row(*row)
         
@@ -172,13 +212,19 @@ class VisualizationWidget(Static):
         text = Text()
         
         # Players
-        text.append("Players: ", style="bold yellow")
-        text.append(", ".join(builder.players) + "\n\n", style="white")
+        text.append("Players: ", style="bold white")
+        for i, player in enumerate(builder.players):
+            if i > 0:
+                text.append(", ", style="white")
+            player_color = self._get_player_color(i)
+            text.append(player, style=f"{player_color} bold")
+        text.append("\n\n")
         
         # Strategies
-        text.append("Strategies per player:\n", style="bold yellow")
+        text.append("Strategies per player:\n", style="bold white")
         for i, (player, num_strat) in enumerate(zip(builder.players, builder.num_strategies)):
-            text.append(f"  {player}: ", style="cyan")
+            player_color = self._get_player_color(i)
+            text.append(f"  {player}: ", style=f"{player_color} bold")
             text.append(f"{num_strat} strategies\n", style="white")
         
         text.append("\n")
@@ -209,10 +255,10 @@ class VisualizationWidget(Static):
             
             # Create header text
             header = Text()
-            header.append(f"Extensive Form Game: ", style="bold cyan")
+            header.append(f"Extensive Form Game: ", style="bold white")
             header.append(builder.title, style="bold white")
             header.append("\n")
-            header.append(f"Players: ", style="bold yellow")
+            header.append(f"Players: ", style="bold white")
             header.append(", ".join(builder.players), style="white")
             header.append("\n\n")
             
@@ -270,33 +316,49 @@ class VisualizationWidget(Static):
         
         # Create node label and add to tree
         node = None
+        current_player_color = None
+        
         if node_type == 'c':
             label = Text()
-            label.append("○ CHANCE", style="yellow bold")
+            label.append("○ CHANCE", style="bright_white bold")
             if name:
-                label.append(f" {name}", style="yellow")
+                label.append(f" {name}", style="bright_white")
             node = parent_tree.add(label)
+            current_player_color = "bright_white"
             
         elif node_type == 'p':
             player_name = builder.players[player - 1] if player and player <= len(builder.players) else f"Player {player}"
+            player_color = self._get_player_color(player - 1)
+            current_player_color = player_color
+            
             label = Text()
-            label.append(f"● {player_name}", style="cyan bold")
+            label.append(f"● {player_name}", style=f"{player_color} bold")
             if name:
-                label.append(f" {name}", style="cyan")
+                label.append(f" {name}", style=player_color)
             node = parent_tree.add(label)
             
         elif node_type == 't':
             label = Text()
-            label.append("■ ", style="green bold")
-            if outcome:
-                label.append(outcome, style="green")
-            else:
-                label.append("Terminal", style="green")
+            label.append("■ Terminal", style="white bold")
             
             if payoffs:
                 label.append(" → ", style="dim")
-                payoff_str = ", ".join([f"{builder.players[i]}: {p:.1f}" for i, p in enumerate(payoffs)])
-                label.append(f"({payoff_str})", style="magenta bold")
+                payoff_parts = []
+                for i, p in enumerate(payoffs):
+                    player_color = self._get_player_color(i)
+                    payoff_text = Text()
+                    payoff_text.append(f"{builder.players[i]}: ", style=f"{player_color} bold")
+                    payoff_text.append(f"{p:.1f}", style=player_color)
+                    payoff_parts.append(payoff_text)
+                
+                # Combine payoff parts with separators
+                combined_payoffs = Text("(")
+                for i, payoff_part in enumerate(payoff_parts):
+                    if i > 0:
+                        combined_payoffs.append(", ", style="white")
+                    combined_payoffs.append(payoff_part)
+                combined_payoffs.append(")", style="white")
+                label.append(combined_payoffs)
             
             parent_tree.add(label)
             return index + 1
@@ -306,9 +368,9 @@ class VisualizationWidget(Static):
             next_index = index + 1
             
             for action in actions:
-                # Create branch with action label
+                # Create branch with action label - use player color for their actions
                 action_label = Text()
-                action_label.append(f"[{action}]", style="white bold")
+                action_label.append(f"[{action}]", style=f"{current_player_color} bold")
                 branch = node.add(action_label)
                 
                 # Add child node
