@@ -126,23 +126,29 @@ class NFGBuilder:
         if header_match:
             builder.title = header_match.group(1)
         
-        # Parse players
-        player_match = re.search(r'\{([^}]+)\}', lines[1])
-        if player_match:
-            player_str = player_match.group(1)
-            builder.players = [p.strip().strip('"') for p in re.findall(r'"([^"]+)"', player_str)]
+        # Parse players and strategy counts - they can be on the same line or separate lines
+        # Find all { ... } groups in lines 1 and 2
+        braces_content = []
+        for i in range(1, min(3, len(lines))):
+            braces_content.extend(re.findall(r'\{([^}]+)\}', lines[i]))
         
-        # Parse strategy counts
-        strat_match = re.search(r'\{([^}]+)\}', lines[2])
-        if strat_match:
-            strat_str = strat_match.group(1)
+        if len(braces_content) >= 2:
+            # First braces: players
+            player_str = braces_content[0]
+            builder.players = [p.strip().strip('"') for p in re.findall(r'"([^"]+)"', player_str)]
+            
+            # Second braces: strategy counts
+            strat_str = braces_content[1]
             builder.num_strategies = [int(x) for x in strat_str.split()]
         
-        # Parse payoffs (can span multiple lines)
+        # Parse payoffs (can span multiple lines, skip empty lines)
+        # Start searching after the header lines
         payoff_lines = []
-        for i in range(3, len(lines)):
-            if lines[i].strip():
-                payoff_lines.append(lines[i].strip())
+        for i in range(1, len(lines)):
+            line = lines[i].strip()
+            # Skip lines with braces (metadata) and empty lines
+            if line and not re.search(r'\{[^}]*\}', line):
+                payoff_lines.append(line)
         
         payoff_str = ' '.join(payoff_lines)
         builder.payoffs = [float(x) for x in payoff_str.split()]
