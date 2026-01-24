@@ -8,6 +8,7 @@ from textual import work
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.text import Text
+from ..game.validator import GameValidator
 
 if TYPE_CHECKING:
     from ..ai.game_builder import GameBuilder
@@ -136,7 +137,8 @@ class ChatWidget(Vertical):
         
         # Display result
         if result['success']:
-            self.display_system_message(result['message'])
+            if result['message']:  # Only display if there's a message
+                self.display_system_message(result['message'])
         else:
             self.display_error_message(result['message'])
         
@@ -151,6 +153,11 @@ class ChatWidget(Vertical):
             # Clear session
             if data.get('action') == 'clear':
                 self.clear_session()
+            
+            # Generate game file
+            if data.get('action') == 'generate':
+                prompt = data.get('prompt', 'Generate or update the game file.')
+                self.handle_generate_request(prompt)
     
     def handle_user_message(self, message: str):
         """Handle regular user message.
@@ -174,18 +181,48 @@ class ChatWidget(Vertical):
             self.last_editor_content = current_editor_content
         
         # Send to AI (run async)
-        self.process_ai_response(message, file_diff)
+        self.process_ai_response(message, file_diff, generate_game_file=False)
+        self.process_ai_response(message, file_diff, generate_game_file=False)
+    
+    def handle_generate_request(self, prompt: str):
+        """Handle /generate command to create/update game file.
+        
+        Args:
+            prompt: Optional prompt or description for generation.
+        """
+        if not self.game_builder or not self.editor_widget:
+            return
+        
+        # Show loading indicator
+        self.show_loading()
+        
+        # Check for editor changes
+        current_editor_content = self.editor_widget.get_content()
+        file_diff = None
+        
+        if current_editor_content != self.last_editor_content and current_editor_content.strip():
+            # Compute simple diff
+            file_diff = f"Editor content updated:\n```\n{current_editor_content}\n```"
+            self.last_editor_content = current_editor_content
+        
+        # Send to AI with game generation flag (run async)
+        self.process_ai_response(prompt, file_diff, generate_game_file=True)
     
     @work(exclusive=True)
-    async def process_ai_response(self, message: str, file_diff: Optional[str]):
+    async def process_ai_response(self, message: str, file_diff: Optional[str], generate_game_file: bool = False):
         """Process AI response asynchronously.
         
         Args:
             message: User message.
             file_diff: Optional file diff.
+            generate_game_file: Whether to generate/update game file.
         """
         try:
-            response = self.game_builder.send_message(message, file_diff=file_diff)
+            response = self.game_builder.send_message(
+                message, 
+                file_diff=file_diff,
+                generate_game_file=generate_game_file
+            )
             
             # Hide loading indicator
             self.hide_loading()
@@ -194,6 +231,39 @@ class ChatWidget(Vertical):
             if response.get('file_content'):
                 self.editor_widget.set_content(response['file_content'])
                 self.last_editor_content = response['file_content']
+                
+                # If we generated a game file, validate it
+                if generate_game_file:
+                    errors = GameValidator.validate(response['file_content'])
+                    
+                    if errors:
+                        # Display validation errors
+                        error_text = "**Validation Errors Found:**\n\n"
+                        for error in errors:
+                            error_text += f"• {str(error)}\n"
+                        self.display_error_message(error_text)
+                        
+                        # Automatically request fix from AI
+                        self.display_system_message("Requesting AI to fix validation errors...")
+                        
+                        # Send errors back to AI for correction
+                        fix_prompt = f"""The game file has validation errors. Please fix them:
+
+{error_text}
+
+Here's the current game file:
+```
+{response['file_content']}
+```
+
+Please provide a corrected version."""
+                        
+                        # Request corrected version from AI
+                        self.request_game_fix(fix_prompt)
+                        return  # Don't display original response since we're getting a fix
+                    else:
+                        # Validation passed
+                        self.display_system_message("✓ Game file validated successfully!")
             
             # Display response
             self.display_assistant_message(response['text'], response.get('sources', []))
@@ -201,6 +271,15 @@ class ChatWidget(Vertical):
         except Exception as e:
             self.hide_loading()
             self.display_error_message(f"Error: {str(e)}")
+    
+    def request_game_fix(self, fix_prompt: str):
+        """Request AI to fix validation errors in generated game file.
+        
+        Args:
+            fix_prompt: Prompt with error details.
+        """
+        # Trigger another generation with the fix prompt
+        self.process_ai_response(fix_prompt, None, generate_game_file=True)
     
     def show_loading(self):
         """Show loading indicator while waiting for AI response."""

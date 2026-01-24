@@ -364,11 +364,16 @@ class GameSolver:
                 eq_data['strategies'][player.label] = player_strats
         else:
             # Mixed strategy profile - format by strategies
-            # For extensive form games, convert to behavior strategy profile to show action names
-            if hasattr(game, 'root') and len(game.players[0].infosets) > 0:
-                # This is an extensive form game - convert to behavior strategy
-                try:
+            # Check if we can convert to behavior strategy (extensive form games only)
+            is_extensive_form = False
+            try:
+                # Try to detect if this is truly an extensive form game
+                # by checking if players have infosets with actions
+                if len(game.players[0].infosets) > 0 and hasattr(equilibrium, 'as_behavior'):
+                    # Try converting - this will only work for extensive form
                     behavior_profile = equilibrium.as_behavior()
+                    is_extensive_form = True
+                    
                     for player in game.players:
                         player_strats = {}
                         for infoset in player.infosets:
@@ -383,20 +388,11 @@ class GameSolver:
                                     eq_data['is_pure'] = False
                         
                         eq_data['strategies'][player.label] = player_strats
-                except Exception:
-                    # Fallback to mixed strategy format if conversion fails
-                    for player in game.players:
-                        player_strats = {}
-                        for strategy in player.strategies:
-                            prob = float(equilibrium[strategy])
-                            player_strats[strategy.label] = prob
-                            
-                            # Check if this is a mixed strategy
-                            if prob > 0 and prob < 1:
-                                eq_data['is_pure'] = False
-                        
-                        eq_data['strategies'][player.label] = player_strats
-            else:
+            except Exception:
+                # Not an extensive form game or conversion failed
+                is_extensive_form = False
+            
+            if not is_extensive_form:
                 # Strategic form game - use strategy labels directly
                 for player in game.players:
                     player_strats = {}

@@ -5,6 +5,23 @@ from typing import Optional, List, Dict, Any
 from google import genai
 from google.genai import types
 
+# Response schema for structured output
+RESPONSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "message": {
+            "type": "string",
+            "description": "Conversational response to the user"
+        },
+        "game_file": {
+            "type": "string",
+            "description": "Complete game file content in .nfg or .efg format. Only provide this when creating or updating a game file. Must start with 'NFG' or 'EFG'.",
+            "nullable": True
+        }
+    },
+    "required": ["message"]
+}
+
 
 class GeminiClient:
     """Client for interacting with Gemini API with Google Search grounding."""
@@ -35,17 +52,19 @@ class GeminiClient:
         self,
         messages: List[Dict[str, str]],
         system_prompt: Optional[str] = None,
-        use_grounding: bool = True
+        use_grounding: bool = True,
+        use_structured_output: bool = False
     ) -> Dict[str, Any]:
-        """Generate response from Gemini with optional grounding.
+        """Generate response from Gemini with optional grounding or structured output.
         
         Args:
             messages: List of message dicts with 'role' and 'content' keys.
             system_prompt: Optional system prompt to prepend.
-            use_grounding: Whether to enable Google Search grounding.
+            use_grounding: Whether to enable Google Search grounding (incompatible with structured output).
+            use_structured_output: Whether to use structured output for game file generation.
             
         Returns:
-            Dict with 'text', 'grounding_metadata', and 'sources' keys.
+            Dict with 'text', 'game_file', 'grounding_metadata', and 'sources' keys.
         """
         # Build contents for Gemini
         contents = []
@@ -69,16 +88,28 @@ class GeminiClient:
                 parts=[types.Part(text=msg["content"])]
             ))
         
-        # Configure generation
-        config = types.GenerateContentConfig(
-            temperature=0.7,
-            top_p=0.95,
-            top_k=40,
-            max_output_tokens=8192,
-        )
-        
-        if use_grounding:
-            config.tools = [self.grounding_tool]
+        # Configure generation based on mode
+        # Note: Grounding cannot be used with structured output (controlled generation)
+        if use_structured_output:
+            # Structured output mode for game file generation
+            config = types.GenerateContentConfig(
+                temperature=0.7,
+                top_p=0.95,
+                top_k=40,
+                max_output_tokens=8192,
+                response_mime_type="application/json",
+                response_schema=RESPONSE_SCHEMA
+            )
+        else:
+            # Normal mode with optional grounding
+            config = types.GenerateContentConfig(
+                temperature=0.7,
+                top_p=0.95,
+                top_k=40,
+                max_output_tokens=8192,
+            )
+            if use_grounding:
+                config.tools = [self.grounding_tool]
         
         # Generate response
         try:
@@ -92,8 +123,26 @@ class GeminiClient:
             if not hasattr(response, 'text') or response.text is None:
                 raise RuntimeError("No text in response from Gemini API")
             
+            # Parse response based on mode
+            import json
+            game_file = None
+            
+            if use_structured_output:
+                # Parse structured JSON response
+                try:
+                    structured_response = json.loads(response.text)
+                    message_text = structured_response.get("message", response.text)
+                    game_file = structured_response.get("game_file")
+                except json.JSONDecodeError:
+                    # Fallback if JSON parsing fails
+                    message_text = response.text
+            else:
+                # Normal text response
+                message_text = response.text
+            
             result = {
-                "text": response.text,
+                "text": message_text,
+                "game_file": game_file,
                 "grounding_metadata": None,
                 "sources": []
             }

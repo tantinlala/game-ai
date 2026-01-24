@@ -71,13 +71,15 @@ Let's build your game!"""
     def send_message(
         self,
         user_message: str,
-        file_diff: Optional[str] = None
+        file_diff: Optional[str] = None,
+        generate_game_file: bool = False
     ) -> Dict[str, Any]:
         """Send a user message and get AI response.
         
         Args:
             user_message: The user's message.
             file_diff: Optional diff of file edits made by user.
+            generate_game_file: Whether to generate/update the game file (use structured output).
             
         Returns:
             Dict with AI response text, sources, and updated file content.
@@ -100,7 +102,8 @@ Let's build your game!"""
             response = self.client.generate_response(
                 messages=self.conversation_history,
                 system_prompt=SYSTEM_PROMPT,
-                use_grounding=True
+                use_grounding=not generate_game_file,  # Use grounding unless generating game file
+                use_structured_output=generate_game_file  # Use structured output only when generating
             )
         except Exception as e:
             # Remove the user message from history if generation failed
@@ -113,14 +116,14 @@ Let's build your game!"""
             "content": response["text"]
         })
         
-        # Extract game file content if present in response
-        file_content = self._extract_game_file(response["text"])
-        if file_content:
+        # Use structured game_file from response if provided
+        if response.get("game_file"):
+            file_content = response["game_file"].strip()
             self.current_game_content = file_content
             # Detect game type from content
-            if file_content.strip().startswith("NFG"):
+            if file_content.startswith("NFG"):
                 self.game_type = "nfg"
-            elif file_content.strip().startswith("EFG"):
+            elif file_content.startswith("EFG"):
                 self.game_type = "efg"
         
         return {
@@ -129,48 +132,6 @@ Let's build your game!"""
             "file_content": self.current_game_content,
             "game_type": self.game_type
         }
-    
-    def _extract_game_file(self, text: str) -> Optional[str]:
-        """Extract game file content from AI response.
-        
-        Args:
-            text: AI response text.
-            
-        Returns:
-            Extracted file content or None.
-        """
-        # Look for code blocks with game content
-        import re
-        
-        # Try to find code blocks
-        code_block_pattern = r"```(?:nfg|efg|gambit)?\n(.*?)```"
-        matches = re.findall(code_block_pattern, text, re.DOTALL | re.IGNORECASE)
-        
-        for match in matches:
-            content = match.strip()
-            # Check if it looks like a game file
-            if content.startswith("NFG") or content.startswith("EFG"):
-                return content
-        
-        # Also check for lines that start with NFG or EFG without code blocks
-        lines = text.split('\n')
-        for i, line in enumerate(lines):
-            if line.strip().startswith(("NFG", "EFG")):
-                # Extract from this line onwards until we hit non-game content
-                game_lines = []
-                for j in range(i, len(lines)):
-                    current_line = lines[j]
-                    # Stop at markdown, explanatory text, or empty lines after content
-                    if j > i and (current_line.startswith('#') or 
-                                 current_line.startswith('**') or
-                                 (not current_line.strip() and game_lines)):
-                        break
-                    game_lines.append(current_line)
-                
-                if game_lines:
-                    return '\n'.join(game_lines).strip()
-        
-        return None
     
     def update_file_content(self, content: str):
         """Update the current game file content.

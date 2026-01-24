@@ -1,7 +1,8 @@
 """Visualization widget for game files."""
 
-import re
-from typing import Optional, List, Tuple
+import tempfile
+import os
+from typing import Optional
 from textual.widgets import Static
 from textual.containers import VerticalScroll
 from textual.app import ComposeResult
@@ -9,8 +10,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.console import Group
 from rich.tree import Tree
-from ..game.nfg_builder import NFGBuilder
-from ..game.efg_builder import EFGBuilder
+import pygambit as gbt
 
 
 class VisualizationWidget(VerticalScroll):
@@ -125,33 +125,43 @@ class VisualizationWidget(VerticalScroll):
             content: NFG file content.
         """
         try:
-            builder = NFGBuilder.from_nfg_string(content)
+            # Write content to temporary file and load with pygambit
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.nfg', delete=False) as f:
+                f.write(content)
+                temp_path = f.name
             
-            # Create header text
-            header = Text()
-            header.append(f"Strategic Form Game: ", style="bold cyan")
-            header.append(builder.title, style="bold white")
-            header.append("\n\n")
-            
-            # For 2-player games, create a payoff matrix table
-            if len(builder.players) == 2:
-                table = self._create_2player_matrix(builder)
-                if self._content_widget:
-                    self._content_widget.update(Group(header, table))
-            else:
-                # For n-player games (n > 2), display as structured text
-                info = self._create_nplayer_info(builder)
-                if self._content_widget:
-                    self._content_widget.update(Group(header, info))
+            try:
+                # Load game using pygambit
+                game = gbt.read_nfg(temp_path)
+                
+                # Create header text
+                header = Text()
+                header.append(f"Strategic Form Game: ", style="bold cyan")
+                header.append(game.title, style="bold white")
+                header.append("\n\n")
+                
+                # For 2-player games, create a payoff matrix table
+                if len(game.players) == 2:
+                    table = self._create_2player_matrix(game)
+                    if self._content_widget:
+                        self._content_widget.update(Group(header, table))
+                else:
+                    # For n-player games (n > 2), display as structured text
+                    info = self._create_nplayer_info(game)
+                    if self._content_widget:
+                        self._content_widget.update(Group(header, info))
+            finally:
+                # Clean up temporary file
+                os.unlink(temp_path)
                 
         except Exception as e:
             raise ValueError(f"Failed to parse NFG content: {str(e)}")
     
-    def _create_2player_matrix(self, builder: NFGBuilder) -> Table:
+    def _create_2player_matrix(self, game) -> Table:
         """Create a payoff matrix table for 2-player games.
         
         Args:
-            builder: NFGBuilder instance with parsed game data.
+            game: PyGambit game object.
             
         Returns:
             Rich Table with payoff matrix.
@@ -160,8 +170,10 @@ class VisualizationWidget(VerticalScroll):
         p1_color = self._get_player_color(0)
         p2_color = self._get_player_color(1)
         
+        players = list(game.players)
+        
         table = Table(
-            title=f"{builder.players[0]} (rows) vs {builder.players[1]} (columns)",
+            title=f"{players[0].label} (rows) vs {players[1].label} (columns)",
             show_header=True,
             header_style="bold white",
             border_style="blue",
@@ -170,33 +182,31 @@ class VisualizationWidget(VerticalScroll):
         
         # Add column headers (Player 2's strategies)
         header_label = Text()
-        header_label.append(f"{builder.players[0]}", style=f"{p1_color} bold")
+        header_label.append(f"{players[0].label}", style=f"{p1_color} bold")
         header_label.append(" \\ ", style="white")
-        header_label.append(f"{builder.players[1]}", style=f"{p2_color} bold")
+        header_label.append(f"{players[1].label}", style=f"{p2_color} bold")
         table.add_column(header_label, style="white")
         
-        for j in range(builder.num_strategies[1]):
-            col_header = Text(f"Strategy {j+1}", style=f"{p2_color} bold")
+        p2_strategies = list(players[1].strategies)
+        for strategy in p2_strategies:
+            col_header = Text(strategy.label, style=f"{p2_color} bold")
             table.add_column(col_header, justify="center")
         
         # Add rows (Player 1's strategies)
-        num_strat_p1 = builder.num_strategies[0]
-        num_strat_p2 = builder.num_strategies[1]
-        num_players = len(builder.players)
+        p1_strategies = list(players[0].strategies)
         
-        for i in range(num_strat_p1):
-            row_label = Text(f"Strategy {i+1}", style=f"{p1_color} bold")
+        for i, p1_strat in enumerate(p1_strategies):
+            row_label = Text(p1_strat.label, style=f"{p1_color} bold")
             row = [row_label]
             
-            for j in range(num_strat_p2):
-                # Calculate index in payoffs array
-                # NFG format: first player's strategies vary fastest
-                outcome_idx = j * num_strat_p1 + i
-                payoff_idx = outcome_idx * num_players
+            for j, p2_strat in enumerate(p2_strategies):
+                # Get the outcome for this strategy profile
+                # In pygambit, index the game with the strategy profile
+                outcome = game[p1_strat, p2_strat]
                 
                 # Get payoffs for both players
-                p1_payoff = builder.payoffs[payoff_idx]
-                p2_payoff = builder.payoffs[payoff_idx + 1]
+                p1_payoff = float(outcome[players[0]])
+                p2_payoff = float(outcome[players[1]])
                 
                 # Format with player colors
                 payoff_text = Text("(")
@@ -211,39 +221,41 @@ class VisualizationWidget(VerticalScroll):
         
         return table
     
-    def _create_nplayer_info(self, builder: NFGBuilder) -> Text:
+    def _create_nplayer_info(self, game) -> Text:
         """Create structured text info for n-player games.
         
         Args:
-            builder: NFGBuilder instance with parsed game data.
+            game: PyGambit game object.
             
         Returns:
             Rich Text with game information.
         """
         text = Text()
         
+        players = list(game.players)
+        
         # Players
         text.append("Players: ", style="bold white")
-        for i, player in enumerate(builder.players):
+        for i, player in enumerate(players):
             if i > 0:
                 text.append(", ", style="white")
             player_color = self._get_player_color(i)
-            text.append(player, style=f"{player_color} bold")
+            text.append(player.label, style=f"{player_color} bold")
         text.append("\n\n")
         
         # Strategies
         text.append("Strategies per player:\n", style="bold white")
-        for i, (player, num_strat) in enumerate(zip(builder.players, builder.num_strategies)):
+        for i, player in enumerate(players):
             player_color = self._get_player_color(i)
-            text.append(f"  {player}: ", style=f"{player_color} bold")
-            text.append(f"{num_strat} strategies\n", style="white")
+            text.append(f"  {player.label}: ", style=f"{player_color} bold")
+            text.append(f"{len(player.strategies)} strategies\n", style="white")
         
         text.append("\n")
         
         # Total outcomes
         total_outcomes = 1
-        for num in builder.num_strategies:
-            total_outcomes *= num
+        for player in players:
+            total_outcomes *= len(player.strategies)
         
         text.append(f"Total strategy profiles: ", style="bold yellow")
         text.append(f"{total_outcomes}\n\n", style="white")
@@ -251,7 +263,7 @@ class VisualizationWidget(VerticalScroll):
         # Note for n-player games
         text.append("Note: ", style="bold red")
         text.append(f"Full payoff matrix visualization is only available for 2-player games.\n", style="italic")
-        text.append(f"This game has {len(builder.players)} players.\n", style="italic")
+        text.append(f"This game has {len(players)} players.\n", style="italic")
         
         return text
     
@@ -262,178 +274,116 @@ class VisualizationWidget(VerticalScroll):
             content: EFG file content.
         """
         try:
-            builder = EFGBuilder.from_efg_string(content)
+            # Write content to temporary file and load with pygambit
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.efg', delete=False) as f:
+                f.write(content)
+                temp_path = f.name
             
-            # Create header text
-            header = Text()
-            header.append(f"Extensive Form Game: ", style="bold white")
-            header.append(builder.title, style="bold white")
-            header.append("\n")
-            header.append(f"Players: ", style="bold white")
-            header.append(", ".join(builder.players), style="white")
-            header.append("\n\n")
-            
-            # Parse nodes
-            nodes = self._parse_all_nodes(content)
-            if not nodes:
+            try:
+                # Load game using pygambit
+                game = gbt.read_efg(temp_path)
+                
+                # Create header text
+                header = Text()
+                header.append(f"Extensive Form Game: ", style="bold white")
+                header.append(game.title, style="bold white")
+                header.append("\\n")
+                header.append(f"Players: ", style="bold white")
+                player_names = ", ".join([p.label for p in game.players])
+                header.append(player_names, style="white")
+                header.append("\\n\\n")
+                
+                # Create tree visualization from game tree
+                tree = Tree("🎮 Game Tree", guide_style="bold bright_blue")
+                self._build_tree_from_game(tree, game.root, game)
+                
                 if self._content_widget:
-                    self._content_widget.update(Group(header, Text("No nodes found in game tree", style="dim italic")))
-                return
-            
-            # Create tree visualization
-            tree = Tree("🎮 Game Tree", guide_style="bold bright_blue")
-            self._build_rich_tree(tree, nodes, 0, builder)
-            
-            if self._content_widget:
-                self._content_widget.update(Group(header, tree))
+                    self._content_widget.update(Group(header, tree))
+            finally:
+                # Clean up temporary file
+                os.unlink(temp_path)
             
         except Exception as e:
             raise ValueError(f"Failed to parse EFG content: {str(e)}")
     
-    def _parse_all_nodes(self, content: str) -> List[Tuple]:
-        """Parse all nodes from EFG content.
-        
-        Args:
-            content: EFG file content.
-            
-        Returns:
-            List of parsed nodes.
-        """
-        lines = [l.strip() for l in content.strip().split('\n') if l.strip()]
-        
-        nodes = []
-        for i, line in enumerate(lines):
-            if i >= 1 and (line.startswith('c ') or line.startswith('p ') or line.startswith('t ')):
-                node_info = self._parse_node_line(line)
-                if node_info:
-                    nodes.append(node_info)
-        
-        return nodes
-    
-    def _build_rich_tree(self, parent_tree, nodes: list, index: int, builder: EFGBuilder) -> int:
-        """Recursively build Rich Tree from parsed nodes.
+    def _build_tree_from_game(self, parent_tree, node, game):
+        """Recursively build Rich Tree from pygambit game tree.
         
         Args:
             parent_tree: Parent Tree or tree node to attach to.
-            nodes: List of all parsed nodes.
-            index: Current node index.
-            builder: EFGBuilder instance.
-            
-        Returns:
-            Next node index to process.
+            node: PyGambit node object.
+            game: PyGambit game object.
         """
-        if index >= len(nodes):
-            return index
-        
-        node_type, name, player, actions, payoffs, outcome = nodes[index]
-        
-        # Terminal node - add it directly to parent and return
-        if node_type == 't':
+        # Check if terminal node
+        if node.is_terminal:
             label = Text()
             label.append("■ Terminal", style="white bold")
             
-            if payoffs:
-                label.append(" → ", style="dim")
-                payoff_parts = []
-                for i, p in enumerate(payoffs):
-                    player_color = self._get_player_color(i)
-                    payoff_text = Text()
-                    payoff_text.append(f"{builder.players[i]}: ", style=f"{player_color} bold")
-                    payoff_text.append(f"{p:.1f}", style=player_color)
-                    payoff_parts.append(payoff_text)
-                
-                # Combine payoff parts with separators
-                combined_payoffs = Text("(")
-                for i, payoff_part in enumerate(payoff_parts):
-                    if i > 0:
-                        combined_payoffs.append(", ", style="white")
-                    combined_payoffs.append(payoff_part)
-                combined_payoffs.append(")", style="white")
-                label.append(combined_payoffs)
+            # Add payoffs
+            label.append(" → ", style="dim")
+            payoffs_text = Text("(")
+            for i, player in enumerate(game.players):
+                if i > 0:
+                    payoffs_text.append(", ", style="white")
+                player_color = self._get_player_color(i)
+                payoff_value = float(node.outcome[player])
+                payoffs_text.append(f"{player.label}: ", style=f"{player_color} bold")
+                payoffs_text.append(f"{payoff_value:.1f}", style=player_color)
+            payoffs_text.append(")", style="white")
+            label.append(payoffs_text)
             
             parent_tree.add(label)
-            return index + 1
+            return
         
-        # Create node label
-        label = Text()
-        current_player_color = None
-        
-        if node_type == 'c':
+        # Check if this is a chance node
+        if node.infoset.is_chance:
+            label = Text()
             label.append("○ CHANCE", style="bright_white bold")
-            if name:
-                label.append(f" {name}", style="bright_white")
-            current_player_color = "bright_white"
+            if node.label:
+                label.append(f" {node.label}", style="bright_white")
             
-        elif node_type == 'p':
-            player_name = builder.players[player - 1] if player and player <= len(builder.players) else f"Player {player}"
-            player_color = self._get_player_color(player - 1)
-            current_player_color = player_color
+            # Create this node in the tree
+            tree_node = parent_tree.add(label)
             
-            label.append(f"● {player_name}", style=f"{player_color} bold")
-            if name:
-                label.append(f" {name}", style=player_color)
-        
-        # Add node to parent
-        node = parent_tree.add(label)
-        
-        # Process children - each action leads to child nodes
-        if actions:
-            next_index = index + 1
-            
-            for action in actions:
-                # Create branch with action label
+            # Add child nodes for each action
+            for action in node.infoset.actions:
                 action_label = Text()
-                action_label.append(f"[{action}]", style=f"{current_player_color}")
-                branch = node.add(action_label)
+                action_label.append(f"→ {action.label}", style="bright_white")
                 
-                # Recursively add child nodes under this action branch
-                next_index = self._build_rich_tree(branch, nodes, next_index, builder)
+                # Get probability if available
+                try:
+                    prob = float(action.prob)
+                    action_label.append(f" (p={prob:.2f})", style="dim")
+                except:
+                    pass
+                
+                action_node = tree_node.add(action_label)
+                
+                # Get the child node
+                child = node.children[action]
+                self._build_tree_from_game(action_node, child, game)
+        else:
+            # Player decision node
+            player = node.infoset.player
+            player_idx = list(game.players).index(player)
+            player_color = self._get_player_color(player_idx)
             
-            return next_index
-        
-        return index + 1
+            label = Text()
+            label.append(f"● {player.label}", style=f"{player_color} bold")
+            if node.label:
+                label.append(f" {node.label}", style=player_color)
+            
+            # Create this node in the tree
+            tree_node = parent_tree.add(label)
+            
+            # Add child nodes for each action
+            for action in node.infoset.actions:
+                action_label = Text()
+                action_label.append(f"→ {action.label}", style=player_color)
+                
+                action_node = tree_node.add(action_label)
+                
+                # Get the child node
+                child = node.children[action]
+                self._build_tree_from_game(action_node, child, game)
     
-    def _parse_node_line(self, line: str) -> Optional[Tuple]:
-        """Parse a single node line from EFG format.
-        
-        Args:
-            line: Node line from EFG file.
-            
-        Returns:
-            Tuple of (node_type, name, player, actions, payoffs, outcome) or None.
-        """
-        try:
-            # Chance node: c "name" infoset "label" { "action" prob ... } outcome
-            if line.startswith('c '):
-                match = re.match(r'c\s+"([^"]*)"\s+\d+\s+"[^"]*"\s+\{([^}]*)\}', line)
-                if match:
-                    name = match.group(1)
-                    actions_str = match.group(2).strip()
-                    # Extract actions (ignore probabilities for visualization)
-                    actions = re.findall(r'"([^"]+)"', actions_str)
-                    return ('c', name, None, actions, [], "")
-            
-            # Player node: p "name" player infoset "label" { "action" ... } outcome
-            elif line.startswith('p '):
-                match = re.match(r'p\s+"([^"]*)"\s+(\d+)\s+\d+\s+"[^"]*"\s+\{([^}]*)\}', line)
-                if match:
-                    name = match.group(1)
-                    player = int(match.group(2))
-                    actions_str = match.group(3).strip()
-                    actions = re.findall(r'"([^"]+)"', actions_str)
-                    return ('p', name, player, actions, [], "")
-            
-            # Terminal node: t "name" outcome "outcome_name" { payoff1 payoff2 ... }
-            elif line.startswith('t '):
-                match = re.match(r't\s+"([^"]*)"\s+\d+\s+"([^"]*)"\s+\{([^}]*)\}', line)
-                if match:
-                    name = match.group(1)
-                    outcome = match.group(2)
-                    payoffs_str = match.group(3).strip()
-                    payoffs = [float(p) for p in payoffs_str.split()]
-                    return ('t', name, None, [], payoffs, outcome)
-        
-        except Exception:
-            pass
-        
-        return None

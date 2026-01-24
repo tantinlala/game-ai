@@ -25,6 +25,7 @@ class CommandHandler:
             'export': self.cmd_export,
             'clear': self.cmd_clear,
             'validate': self.cmd_validate,
+            'generate': self.cmd_generate,
         }
     
     def handle_command(
@@ -60,6 +61,7 @@ class CommandHandler:
         help_text = """**Available Commands:**
 
 • `/help` - Show this help message
+• `/generate [description]` - Generate or update the game file
 • `/save <name>` - Save current session with given name
 • `/load <name>` - Load a saved session
 • `/list` - List all saved sessions
@@ -79,6 +81,8 @@ class CommandHandler:
 • `gnm` - Global Newton method (N-player)
 
 **Tips:**
+- Chat normally to discuss and plan your game
+- Use `/generate` when ready to create/update the game file in the editor
 - Manual edits to the game file are sent as context with your next message
 - Use `/validate` before `/solve` to check for errors
 - Save your work frequently with `/save`
@@ -390,4 +394,18 @@ class CommandHandler:
         return {
             'success': False,
             'message': error_text
+        }
+    
+    def cmd_generate(self, args: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Request AI to generate/update the game file.
+        
+        This command signals that the user wants the AI to create or modify
+        the game file based on the conversation context.
+        """
+        # The actual generation will be handled by the chat widget
+        # by passing generate_game_file=True to the game builder
+        return {
+            'success': True,
+            'message': "",  # No message needed, AI will respond
+            'data': {'action': 'generate', 'prompt': args.strip() or "Generate or update the game file based on our conversation."}
         }
