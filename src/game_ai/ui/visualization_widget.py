@@ -270,7 +270,14 @@ class VisualizationWidget(VerticalScroll):
             header.append(builder.title, style="bold white")
             header.append("\n")
             header.append(f"Players: ", style="bold white")
-            header.append(", ".join(builder.players), style="white")
+            
+            # Add each player with their color
+            for i, player in enumerate(builder.players):
+                if i > 0:
+                    header.append(", ", style="white")
+                player_color = self._get_player_color(i)
+                header.append(player, style=f"{player_color} bold")
+            
             header.append("\n\n")
             
             # Parse nodes
@@ -338,8 +345,7 @@ class VisualizationWidget(VerticalScroll):
                 for i, p in enumerate(payoffs):
                     player_color = self._get_player_color(i)
                     payoff_text = Text()
-                    payoff_text.append(f"{builder.players[i]}: ", style=f"{player_color} bold")
-                    payoff_text.append(f"{p:.1f}", style=player_color)
+                    payoff_text.append(f"{p:.1f}", style=f"{player_color} bold")
                     payoff_parts.append(payoff_text)
                 
                 # Combine payoff parts with separators
@@ -367,7 +373,6 @@ class VisualizationWidget(VerticalScroll):
             current_player_color = "bright_white"
             
         elif node_type == 'p':
-            player_name = builder.players[player - 1] if player and player <= len(builder.players) else f"Player {player}"
             player_color = self._get_player_color(player - 1)
             current_player_color = player_color
             
@@ -381,9 +386,6 @@ class VisualizationWidget(VerticalScroll):
             # 2. Node Name (if available)
             if name and name.strip():
                  parts.append((name, f"{player_color}"))
-                 
-            # 3. Player Name
-            parts.append((player_name, f"{player_color} bold"))
             
             for i, (text, style) in enumerate(parts):
                 if i > 0:
