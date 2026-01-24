@@ -189,7 +189,9 @@ class ChatWidget(Vertical):
         Args:
             prompt: Optional prompt or description for generation.
         """
+        print(f"[DEBUG] handle_generate_request called with prompt: '{prompt}'")
         if not self.game_builder or not self.editor_widget:
+            print("[DEBUG] Missing game_builder or editor_widget")
             return
         
         # Show loading indicator
@@ -206,6 +208,8 @@ class ChatWidget(Vertical):
         
         # Send to AI with game generation flag (run async)
         # Initial generation uses main history, not temp history
+        print(f"[DEBUG] Calling process_ai_response with prompt: '{prompt}'")
+        print(f"[DEBUG] generate_game_file=True, is_validation_fix=False, file_diff={'present' if file_diff else 'None'}")
         self.process_ai_response(prompt, file_diff, generate_game_file=True, is_validation_fix=False)
     
     @work(exclusive=True)
@@ -219,6 +223,9 @@ class ChatWidget(Vertical):
             max_validation_attempts: Maximum attempts to fix validation errors.
             is_validation_fix: If True, this is a validation error fix (use temp history).
         """
+        print(f"[DEBUG] process_ai_response started")
+        print(f"[DEBUG] message: '{message}'")
+        print(f"[DEBUG] generate_game_file={generate_game_file}, is_validation_fix={is_validation_fix}, max_attempts={max_validation_attempts}")
         try:
             # For validation fixes, use temp history. For initial generation, use main history.
             response = self.game_builder.send_message(
@@ -228,50 +235,48 @@ class ChatWidget(Vertical):
                 use_temp_history=is_validation_fix  # Only use temp history for validation fixes
             )
             
+            print(f"[DEBUG] Received response from game_builder")
+            print(f"[DEBUG] Response keys: {list(response.keys())}")
+            print(f"[DEBUG] Has file_content: {'file_content' in response}")
+            if 'file_content' in response:
+                print(f"[DEBUG] file_content length: {len(response.get('file_content', ''))}")
+                print(f"[DEBUG] file_content first 100 chars: {response.get('file_content', '')[:100]}")
+            
             # Hide loading indicator
             self.hide_loading()
             
             # Update editor if new content
             if response.get('file_content'):
+                print(f"[DEBUG] Setting editor content (length: {len(response['file_content'])})")
                 self.editor_widget.set_content(response['file_content'])
                 self.last_editor_content = response['file_content']
+            else:
+                print(f"[DEBUG] No file_content in response or it's empty")
             
             # If we generated a game file, validate it
             if generate_game_file:
                 file_content = response.get('file_content', '')
+                print(f"[DEBUG] Starting validation (file_content length: {len(file_content)})")
                 errors = GameValidator.validate(file_content)
+                print(f"[DEBUG] Validation returned {len(errors) if errors else 0} errors: {errors[:2] if errors else 'None'}")
                 
-                if errors and max_validation_attempts > 0:
+                # Use helper method to determine action based on validation results
+                validation_result = self.handle_validation_result(file_content, errors, max_validation_attempts)
+                
+                if validation_result['should_retry']:
+                    print(f"[DEBUG] Validation failed, requesting fix (attempts remaining: {max_validation_attempts})")
                     # Display validation errors
-                    error_text = "**Validation Errors Found:**\n\n"
-                    for error in errors:
-                        error_text += f"• {str(error)}\n"
-                    self.display_error_message(error_text)
+                    self.display_error_message(validation_result['error_text'])
                     
                     # Automatically request fix from AI
-                    self.display_system_message(f"Requesting AI to fix validation errors... (attempt {4 - max_validation_attempts}/3)")
-                    
-                    # Send errors back to AI for correction
-                    fix_prompt = f"""The game file has validation errors. Please fix them:
-
-{error_text}
-
-Here's the current game file:
-```
-{file_content}
-```
-
-Please provide a corrected version."""
+                    self.display_system_message(f"Requesting AI to fix validation errors... (attempt {validation_result['attempt_number']}/3)")
                     
                     # Request corrected version with decremented attempts
-                    self.request_game_fix(fix_prompt, max_validation_attempts - 1)
+                    self.request_game_fix(validation_result['fix_prompt'], max_validation_attempts - 1)
                     return  # Don't display original response since we're getting a fix
                 elif errors:
                     # Max attempts reached
-                    error_text = "**Validation Errors (max attempts reached):**\n\n"
-                    for error in errors:
-                        error_text += f"• {str(error)}\n"
-                    self.display_error_message(error_text)
+                    self.display_error_message(validation_result['error_text'])
                     self.display_system_message("You can manually edit the file to fix errors or try /generate again.")
                 else:
                     # Validation passed - only now display success
@@ -299,6 +304,62 @@ Please provide a corrected version."""
         """
         # Trigger another generation with the fix prompt using temp history
         self.process_ai_response(fix_prompt, None, generate_game_file=True, max_validation_attempts=max_attempts, is_validation_fix=True)
+    
+    def handle_validation_result(self, file_content: str, errors: list, max_validation_attempts: int) -> dict:
+        """Handle validation results and determine next action.
+        
+        Args:
+            file_content: The game file content that was validated.
+            errors: List of validation errors.
+            max_validation_attempts: Maximum validation attempts remaining.
+            
+        Returns:
+            dict with keys:
+                - 'should_retry': bool - whether to retry generation
+                - 'error_text': str - formatted error message
+                - 'fix_prompt': str - prompt for fixing errors (if retrying)
+                - 'attempt_number': int - current attempt number (1-3)
+        """
+        result = {
+            'should_retry': False,
+            'error_text': '',
+            'fix_prompt': '',
+            'attempt_number': 0  # Will be set correctly if there are errors
+        }
+        
+        if not errors:
+            # Validation passed - attempt_number stays 0
+            return result
+        
+        # We have errors - calculate actual attempt number
+        result['attempt_number'] = 4 - max_validation_attempts
+        
+        # Format error message
+        if max_validation_attempts > 0:
+            error_text = "**Validation Errors Found:**\n\n"
+        else:
+            error_text = "**Validation Errors (max attempts reached):**\n\n"
+        
+        for error in errors:
+            error_text += f"• {str(error)}\n"
+        
+        result['error_text'] = error_text
+        
+        # Determine if we should retry
+        if max_validation_attempts > 0:
+            result['should_retry'] = True
+            result['fix_prompt'] = f"""The game file has validation errors. Please fix them:
+
+{error_text}
+
+Here's the current game file:
+```
+{file_content}
+```
+
+Please provide a corrected version."""
+        
+        return result
     
     def show_loading(self):
         """Show loading indicator while waiting for AI response."""

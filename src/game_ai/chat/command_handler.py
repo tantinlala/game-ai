@@ -402,10 +402,16 @@ class CommandHandler:
         This command signals that the user wants the AI to create or modify
         the game file based on the conversation context.
         """
-        # The actual generation will be handled by the chat widget
-        # by passing generate_game_file=True to the game builder
+        # Build prompt - the full conversation history is already sent to the API
+        if args.strip():
+            # User provided specific instructions
+            prompt = args.strip()
+        else:
+            # Clear directive to generate the game file
+            prompt = "Please generate the complete game file now in .nfg or .efg format based on our conversation."
+        
         return {
             'success': True,
             'message': "",  # No message needed, AI will respond
-            'data': {'action': 'generate', 'prompt': args.strip() or "Generate or update the game file based on our conversation."}
+            'data': {'action': 'generate', 'prompt': prompt}
         }

@@ -158,12 +158,15 @@ class GeminiClient:
                     if hasattr(metadata, 'grounding_chunks') and metadata.grounding_chunks:
                         sources = []
                         try:
-                            for chunk in metadata.grounding_chunks:
-                                if hasattr(chunk, 'web') and chunk.web:
-                                    sources.append({
-                                        "title": getattr(chunk.web, 'title', 'Unknown'),
-                                        "uri": getattr(chunk.web, 'uri', '')
-                                    })
+                            # grounding_chunks might be None even if hasattr returns True
+                            chunks = metadata.grounding_chunks
+                            if chunks is not None:
+                                for chunk in chunks:
+                                    if hasattr(chunk, 'web') and chunk.web:
+                                        sources.append({
+                                            "title": getattr(chunk.web, 'title', 'Unknown'),
+                                            "uri": getattr(chunk.web, 'uri', '')
+                                        })
                             result["sources"] = sources
                         except (TypeError, AttributeError):
                             # If grounding_chunks isn't iterable or has issues, skip it

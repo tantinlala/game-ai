@@ -145,7 +145,7 @@ Let's build your game!"""
         
         return {
             "text": response["text"],
-            "sources": response["sources"],
+            "sources": response.get("sources", []),
             "file_content": self.current_game_content if self.current_game_content else "",
             "game_type": self.game_type
         }
