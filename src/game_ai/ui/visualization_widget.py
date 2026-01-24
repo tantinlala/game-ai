@@ -264,12 +264,31 @@ class VisualizationWidget(VerticalScroll):
         try:
             builder = EFGBuilder.from_efg_string(content)
             
+            # Parse nodes first to check for chance nodes
+            nodes = self._parse_all_nodes(content)
+            if not nodes:
+                header = Text()
+                header.append(f"Extensive Form Game: ", style="bold white")
+                header.append(builder.title, style="bold white")
+                header.append("\n")
+                if self._content_widget:
+                    self._content_widget.update(Group(header, Text("No nodes found in game tree", style="dim italic")))
+                return
+            
+            # Check if there are any chance nodes
+            has_chance = any(node[0] == 'c' for node in nodes)
+            
             # Create header text
             header = Text()
             header.append(f"Extensive Form Game: ", style="bold white")
             header.append(builder.title, style="bold white")
             header.append("\n")
             header.append(f"Players: ", style="bold white")
+            
+            # Add Chance first if there are chance nodes
+            if has_chance:
+                header.append("Chance", style="bright_white bold")
+                header.append(", ", style="white")
             
             # Add each player with their color
             for i, player in enumerate(builder.players):
@@ -279,13 +298,6 @@ class VisualizationWidget(VerticalScroll):
                 header.append(player, style=f"{player_color} bold")
             
             header.append("\n\n")
-            
-            # Parse nodes
-            nodes = self._parse_all_nodes(content)
-            if not nodes:
-                if self._content_widget:
-                    self._content_widget.update(Group(header, Text("No nodes found in game tree", style="dim italic")))
-                return
             
             # Create tree visualization
             tree = Tree("🎮 Game Tree", guide_style="bold bright_blue")
@@ -365,12 +377,23 @@ class VisualizationWidget(VerticalScroll):
         current_player_color = None
         
         if node_type == 'c':
-            label.append("○ CHANCE", style="bright_white bold")
-            if name:
-                label.append(f" {name}", style="bright_white")
-            if infoset and infoset != '""':
-                label.append(f" ({infoset})", style="italic bright_white")
             current_player_color = "bright_white"
+            
+            label.append("○ ", style=f"{current_player_color} bold")
+            
+            parts = []
+            # 1. Infoset Name (if available)
+            if infoset and infoset.strip():
+                 parts.append((infoset, f"{current_player_color} italic"))
+            
+            # 2. Node Name (if available)
+            if name and name.strip():
+                 parts.append((name, f"{current_player_color}"))
+            
+            for i, (text, style) in enumerate(parts):
+                if i > 0:
+                    label.append(" - ", style="white dim")
+                label.append(text, style=style)
             
         elif node_type == 'p':
             player_color = self._get_player_color(player - 1)
