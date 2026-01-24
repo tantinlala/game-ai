@@ -325,7 +325,7 @@ class VisualizationWidget(VerticalScroll):
         if index >= len(nodes):
             return index
         
-        node_type, name, player, actions, payoffs, outcome = nodes[index]
+        node_type, name, player, infoset, actions, payoffs, outcome = nodes[index]
         
         # Terminal node - add it directly to parent and return
         if node_type == 't':
@@ -362,6 +362,8 @@ class VisualizationWidget(VerticalScroll):
             label.append("○ CHANCE", style="bright_white bold")
             if name:
                 label.append(f" {name}", style="bright_white")
+            if infoset and infoset != '""':
+                label.append(f" ({infoset})", style="italic bright_white")
             current_player_color = "bright_white"
             
         elif node_type == 'p':
@@ -369,9 +371,24 @@ class VisualizationWidget(VerticalScroll):
             player_color = self._get_player_color(player - 1)
             current_player_color = player_color
             
-            label.append(f"● {player_name}", style=f"{player_color} bold")
-            if name:
-                label.append(f" {name}", style=player_color)
+            label.append("● ", style=f"{player_color} bold")
+            
+            parts = []
+            # 1. Infoset Name (if available)
+            if infoset and infoset.strip():
+                 parts.append((infoset, f"{player_color} italic"))
+            
+            # 2. Node Name (if available)
+            if name and name.strip():
+                 parts.append((name, f"{player_color}"))
+                 
+            # 3. Player Name
+            parts.append((player_name, f"{player_color} bold"))
+            
+            for i, (text, style) in enumerate(parts):
+                if i > 0:
+                    label.append(" - ", style="white dim")
+                label.append(text, style=style)
         
         # Add node to parent
         node = parent_tree.add(label)
@@ -400,28 +417,30 @@ class VisualizationWidget(VerticalScroll):
             line: Node line from EFG file.
             
         Returns:
-            Tuple of (node_type, name, player, actions, payoffs, outcome) or None.
+            Tuple of (node_type, name, player, infoset, actions, payoffs, outcome) or None.
         """
         try:
             # Chance node: c "name" infoset "label" { "action" prob ... } outcome
             if line.startswith('c '):
-                match = re.match(r'c\s+"([^"]*)"\s+\d+\s+"[^"]*"\s+\{([^}]*)\}', line)
+                match = re.match(r'c\s+"([^"]*)"\s+\d+\s+"([^"]*)"\s+\{([^}]*)\}', line)
                 if match:
                     name = match.group(1)
-                    actions_str = match.group(2).strip()
+                    infoset = match.group(2)
+                    actions_str = match.group(3).strip()
                     # Extract actions (ignore probabilities for visualization)
                     actions = re.findall(r'"([^"]+)"', actions_str)
-                    return ('c', name, None, actions, [], "")
+                    return ('c', name, None, infoset, actions, [], "")
             
             # Player node: p "name" player infoset "label" { "action" ... } outcome
             elif line.startswith('p '):
-                match = re.match(r'p\s+"([^"]*)"\s+(\d+)\s+\d+\s+"[^"]*"\s+\{([^}]*)\}', line)
+                match = re.match(r'p\s+"([^"]*)"\s+(\d+)\s+\d+\s+"([^"]*)"\s+\{([^}]*)\}', line)
                 if match:
                     name = match.group(1)
                     player = int(match.group(2))
-                    actions_str = match.group(3).strip()
+                    infoset = match.group(3)
+                    actions_str = match.group(4).strip()
                     actions = re.findall(r'"([^"]+)"', actions_str)
-                    return ('p', name, player, actions, [], "")
+                    return ('p', name, player, infoset, actions, [], "")
             
             # Terminal node: t "name" outcome "outcome_name" { payoff1 payoff2 ... }
             elif line.startswith('t '):
@@ -431,7 +450,7 @@ class VisualizationWidget(VerticalScroll):
                     outcome = match.group(2)
                     payoffs_str = match.group(3).strip()
                     payoffs = [float(p) for p in payoffs_str.split()]
-                    return ('t', name, None, [], payoffs, outcome)
+                    return ('t', name, None, None, [], payoffs, outcome)
         
         except Exception:
             pass

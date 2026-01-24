@@ -310,20 +310,9 @@ class GameSolver:
         Returns:
             Best available label for the information set.
         """
-        # Try to get a descriptive label
-        # Check if label looks like coordinates e.g., "(1,1)" and if there's a better option
+        # Get the infoset label directly from the infoset object
+        # This corresponds to the infoset label in the EFG file (e.g., "EntryDecision")
         label = str(infoset.label) if infoset.label else ""
-        
-        # If label looks like coordinates "(x,y)", try to get a better description
-        if label.startswith('(') and ',' in label and label.endswith(')'):
-            # Check if the infoset has member nodes with better labels
-            try:
-                if hasattr(infoset, 'members') and len(infoset.members) > 0:
-                    node = infoset.members[0]
-                    if hasattr(node, 'label') and node.label and not node.label.startswith('('):
-                        return str(node.label)
-            except Exception:
-                pass
         
         return label if label else "Decision"
     

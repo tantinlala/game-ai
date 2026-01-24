@@ -301,6 +301,11 @@ t "Low Bet Folded" 6 "P2 Folds" { 1 -1 }
 p "P2 after Low Check" 2 4 "(2,4)" { "Bet" "Check" } 0
 t "Low Check-Bet" 7 "P2 Wins" { -1 1 }
 t "Low Check-Check" 8 "Showdown" { -1 1 }
+
+---
+
+Make sure that all infosets have a readable name.
+
 ```"""
 
 GROUNDING_PROMPT = """When users need realistic numeric values (profits, costs, probabilities, market data), use Google Search to find relevant information. Format your response like:
