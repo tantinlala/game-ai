@@ -30,7 +30,7 @@ class GameAIApp(App):
     }
     
     ChatWidget {
-        width: 2fr;
+        width: 3fr;
         border-right: solid $primary;
     }
     

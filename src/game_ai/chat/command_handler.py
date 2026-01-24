@@ -243,19 +243,35 @@ class CommandHandler:
             
             # For EFG pure strategies, show as sequence of events
             if is_efg and eq['is_pure']:
-                message += "**Action Sequence:**\n```\n"
+                message += "**Equilibrium Strategy:**\n\n"
+                
+                # Collect all active strategies grouped by player
+                player_actions = {}
                 for player, strategies in eq['strategies'].items():
                     active_strats = [(s, p) for s, p in strategies.items() if p > 0.99]
+                    player_actions[player] = active_strats
+                
+                # Display each player's strategy with information sets clearly grouped
+                for player, active_strats in player_actions.items():
+                    if not active_strats:
+                        continue
+                    
+                    message += f"**{player}:**\n```\n"
+                    
                     for strategy, _ in active_strats:
-                        # Format: Player -> infoset: action
+                        # Format: infoset → action
                         if ':' in strategy:
                             infoset, action = strategy.split(':', 1)
-                            message += f"{player:15} → {infoset:15} : {action}\n"
+                            # Show infoset label and action more clearly
+                            message += f"  At {infoset:20} → {action}\n"
                         else:
-                            message += f"{player:15} → {strategy}\n"
-                message += "```\n"
+                            message += f"  {strategy}\n"
+                    
+                    message += "```\n"
             else:
                 # Show strategies in a cleaner format (for NFG or mixed EFG)
+                message += "**Equilibrium Strategy:**\n\n"
+                
                 for player, strategies in eq['strategies'].items():
                     message += f"**{player}:**\n"
                     
@@ -267,17 +283,31 @@ class CommandHandler:
                         if chosen:
                             message += "```\n"
                             for c in chosen:
-                                message += f"{c}\n"
+                                # Check if this is an EFG strategy with infoset
+                                if ':' in c:
+                                    infoset, action = c.split(':', 1)
+                                    message += f"  At {infoset:20} → {action}\n"
+                                else:
+                                    message += f"  {c}\n"
                             message += "```\n"
                     else:
                         # For mixed strategies, show probability distribution
                         message += "```\n"
                         for strategy, prob in sorted(active_strats, key=lambda x: -x[1]):
-                            # Create visual bar (scale to 30 chars for better granularity)
-                            bar_length = int(prob * 30)
-                            bar = "█" * bar_length
-                            # Format: strategy name, bar, percentage
-                            message += f"{strategy:<25} {bar:<30} {prob*100:>5.1f}%\n"
+                            # Check if this is an EFG strategy with infoset
+                            if is_efg and ':' in strategy:
+                                infoset, action = strategy.split(':', 1)
+                                # Create visual bar (scale to 30 chars for better granularity)
+                                bar_length = int(prob * 30)
+                                bar = "█" * bar_length
+                                # Format: infoset and action with probability
+                                message += f"  At {infoset:20} → {action:15} {bar:<30} {prob*100:>5.1f}%\n"
+                            else:
+                                # Create visual bar (scale to 30 chars for better granularity)
+                                bar_length = int(prob * 30)
+                                bar = "█" * bar_length
+                                # Format: strategy name, bar, percentage
+                                message += f"  {strategy:<25} {bar:<30} {prob*100:>5.1f}%\n"
                         message += "```\n"
             
             # Show payoffs in a cleaner table-like format

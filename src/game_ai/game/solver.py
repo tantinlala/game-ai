@@ -301,6 +301,33 @@ class GameSolver:
         return result
     
     @staticmethod
+    def _get_infoset_label(infoset) -> str:
+        """Get a human-readable label for an information set.
+        
+        Args:
+            infoset: PyGambit infoset object.
+            
+        Returns:
+            Best available label for the information set.
+        """
+        # Try to get a descriptive label
+        # Check if label looks like coordinates e.g., "(1,1)" and if there's a better option
+        label = str(infoset.label) if infoset.label else ""
+        
+        # If label looks like coordinates "(x,y)", try to get a better description
+        if label.startswith('(') and ',' in label and label.endswith(')'):
+            # Check if the infoset has member nodes with better labels
+            try:
+                if hasattr(infoset, 'members') and len(infoset.members) > 0:
+                    node = infoset.members[0]
+                    if hasattr(node, 'label') and node.label and not node.label.startswith('('):
+                        return str(node.label)
+            except Exception:
+                pass
+        
+        return label if label else "Decision"
+    
+    @staticmethod
     def _format_equilibrium(game, equilibrium) -> Dict[str, Any]:
         """Format equilibrium for display.
         
@@ -324,9 +351,10 @@ class GameSolver:
             for player in game.players:
                 player_strats = {}
                 for infoset in player.infosets:
+                    infoset_label = GameSolver._get_infoset_label(infoset)
                     for action in infoset.actions:
                         prob = float(equilibrium[action])
-                        action_label = f"{infoset.label}:{action.label}" if infoset.label else action.label
+                        action_label = f"{infoset_label}:{action.label}" if infoset_label else action.label
                         player_strats[action_label] = prob
                         
                         # Check if this is a mixed strategy
@@ -336,17 +364,51 @@ class GameSolver:
                 eq_data['strategies'][player.label] = player_strats
         else:
             # Mixed strategy profile - format by strategies
-            for player in game.players:
-                player_strats = {}
-                for strategy in player.strategies:
-                    prob = float(equilibrium[strategy])
-                    player_strats[strategy.label] = prob
+            # For extensive form games, convert to behavior strategy profile to show action names
+            if hasattr(game, 'root') and len(game.players[0].infosets) > 0:
+                # This is an extensive form game - convert to behavior strategy
+                try:
+                    behavior_profile = equilibrium.as_behavior()
+                    for player in game.players:
+                        player_strats = {}
+                        for infoset in player.infosets:
+                            infoset_label = GameSolver._get_infoset_label(infoset)
+                            for action in infoset.actions:
+                                prob = float(behavior_profile[action])
+                                action_label = f"{infoset_label}:{action.label}" if infoset_label else action.label
+                                player_strats[action_label] = prob
+                                
+                                # Check if this is a mixed strategy
+                                if prob > 0 and prob < 1:
+                                    eq_data['is_pure'] = False
+                        
+                        eq_data['strategies'][player.label] = player_strats
+                except Exception:
+                    # Fallback to mixed strategy format if conversion fails
+                    for player in game.players:
+                        player_strats = {}
+                        for strategy in player.strategies:
+                            prob = float(equilibrium[strategy])
+                            player_strats[strategy.label] = prob
+                            
+                            # Check if this is a mixed strategy
+                            if prob > 0 and prob < 1:
+                                eq_data['is_pure'] = False
+                        
+                        eq_data['strategies'][player.label] = player_strats
+            else:
+                # Strategic form game - use strategy labels directly
+                for player in game.players:
+                    player_strats = {}
+                    for strategy in player.strategies:
+                        prob = float(equilibrium[strategy])
+                        player_strats[strategy.label] = prob
+                        
+                        # Check if this is a mixed strategy
+                        if prob > 0 and prob < 1:
+                            eq_data['is_pure'] = False
                     
-                    # Check if this is a mixed strategy
-                    if prob > 0 and prob < 1:
-                        eq_data['is_pure'] = False
-                
-                eq_data['strategies'][player.label] = player_strats
+                    eq_data['strategies'][player.label] = player_strats
         
         # Calculate expected payoffs
         try:
