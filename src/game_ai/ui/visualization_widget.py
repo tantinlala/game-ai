@@ -376,11 +376,14 @@ class VisualizationWidget(VerticalScroll):
         # Chance node
         if node.infoset and node.infoset.is_chance:
             current_player_color = "bright_white"
-            label.append("○ Chance", style=f"{current_player_color} bold")
+            label.append("● ", style=f"{current_player_color} bold")
             
-            if node.label and node.label.strip():
-                label.append(" - ", style="white dim")
-                label.append(node.label, style=f"{current_player_color}")
+            # Use infoset label or node label
+            infoset_label = node.infoset.label if node.infoset.label and node.infoset.label.strip() else node.label
+            if infoset_label and infoset_label.strip():
+                label.append(infoset_label, style=f"{current_player_color} bold")
+            else:
+                label.append("Nature", style=f"{current_player_color} bold")
         
         # Player node
         else:
@@ -413,6 +416,11 @@ class VisualizationWidget(VerticalScroll):
             # Create branch with action label
             action_label = Text()
             action_label.append(f"[{action.label}]", style=f"{current_player_color}")
+            
+            # Add probability for chance nodes
+            if node.infoset.is_chance and hasattr(action, 'prob'):
+                action_label.append(f" ({float(action.prob):.2%})", style="bright_white")
+            
             branch = tree_node.add(action_label)
             
             # Get child node for this action
