@@ -231,6 +231,9 @@ class CommandHandler:
         message += f"\n**Found:** {len(result.equilibria)} equilibrium/equilibria\n"
         message += "\n" + "─" * 50 + "\n\n"
         
+        # Detect if this is an EFG game
+        is_efg = game_content.startswith("EFG")
+        
         for i, eq in enumerate(result.equilibria, 1):
             eq_type = "🎲 Pure Strategy" if eq['is_pure'] else "🎰 Mixed Strategy"
             message += f"### {eq_type} Equilibrium"
@@ -238,23 +241,44 @@ class CommandHandler:
                 message += f" #{i}"
             message += "\n\n"
             
-            # Show strategies in a cleaner format
-            for player, strategies in eq['strategies'].items():
-                message += f"**{player}:**\n\n"
-                
-                active_strats = [(s, p) for s, p in strategies.items() if p > 0.001]
-                
-                if eq['is_pure']:
-                    # For pure strategies, just show the chosen strategy
-                    chosen = [s for s, p in active_strats if p > 0.99]
-                    if chosen:
-                        message += f"  → `{chosen[0]}`\n\n"
-                else:
-                    # For mixed strategies, show probability distribution
-                    for strategy, prob in sorted(active_strats, key=lambda x: -x[1]):
-                        bar_length = int(prob * 20)  # Visual bar up to 20 chars
-                        bar = "█" * bar_length + "░" * (20 - bar_length)
-                        message += f"  • {strategy:<20} {bar} {prob:>6.1%}\n\n"
+            # For EFG pure strategies, show as sequence of events
+            if is_efg and eq['is_pure']:
+                message += "**Action Sequence:**\n```\n"
+                for player, strategies in eq['strategies'].items():
+                    active_strats = [(s, p) for s, p in strategies.items() if p > 0.99]
+                    for strategy, _ in active_strats:
+                        # Format: Player -> infoset: action
+                        if ':' in strategy:
+                            infoset, action = strategy.split(':', 1)
+                            message += f"{player:15} → {infoset:15} : {action}\n"
+                        else:
+                            message += f"{player:15} → {strategy}\n"
+                message += "```\n"
+            else:
+                # Show strategies in a cleaner format (for NFG or mixed EFG)
+                for player, strategies in eq['strategies'].items():
+                    message += f"**{player}:**\n"
+                    
+                    active_strats = [(s, p) for s, p in strategies.items() if p > 0.001]
+                    
+                    if eq['is_pure']:
+                        # For pure strategies, show the chosen strategy
+                        chosen = [s for s, p in active_strats if p > 0.99]
+                        if chosen:
+                            message += "```\n"
+                            for c in chosen:
+                                message += f"{c}\n"
+                            message += "```\n"
+                    else:
+                        # For mixed strategies, show probability distribution
+                        message += "```\n"
+                        for strategy, prob in sorted(active_strats, key=lambda x: -x[1]):
+                            # Create visual bar (scale to 30 chars for better granularity)
+                            bar_length = int(prob * 30)
+                            bar = "█" * bar_length
+                            # Format: strategy name, bar, percentage
+                            message += f"{strategy:<25} {bar:<30} {prob*100:>5.1f}%\n"
+                        message += "```\n"
             
             # Show payoffs in a cleaner table-like format
             if eq['payoffs']:
