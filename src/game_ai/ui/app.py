@@ -40,7 +40,7 @@ class GameAIApp(App):
     }
     
     VisualizationWidget {
-        width: 3fr;
+        width: 2fr;
     }
     """
     
