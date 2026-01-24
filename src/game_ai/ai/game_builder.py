@@ -52,7 +52,9 @@ I'll help you build game theory models in strategic form (.nfg) or extensive for
 **Available commands:**
 Type `/help` at any time to see available commands like `/solve`, `/save`, `/validate`, etc.
 
-**Tip:** Hold **Shift** while dragging to select and copy text from the chat.
+**Editor Tips:**
+- Drag and then use ctrl+c to copy text.
+- Use ctrl+z and ctrl+y to undo/redo edits.
 
 Let's build your game!"""
         

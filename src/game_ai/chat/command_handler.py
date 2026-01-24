@@ -82,7 +82,6 @@ class CommandHandler:
 - Manual edits to the game file are sent as context with your next message
 - Use `/validate` before `/solve` to check for errors
 - Save your work frequently with `/save`
-- Hold **Shift** while dragging to select and copy text from chat
 """
         return {
             'success': True,
