@@ -179,8 +179,8 @@ class VisualizationWidget(Static):
             
             for j in range(num_strat_p2):
                 # Calculate index in payoffs array
-                # NFG format: row-major order, first player's strategies vary fastest
-                outcome_idx = i * num_strat_p2 + j
+                # NFG format: first player's strategies vary fastest
+                outcome_idx = j * num_strat_p1 + i
                 payoff_idx = outcome_idx * num_players
                 
                 # Get payoffs for both players
