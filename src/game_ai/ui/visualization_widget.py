@@ -3,7 +3,8 @@
 import re
 from typing import Optional, List, Tuple
 from textual.widgets import Static
-from textual.containers import Vertical
+from textual.containers import VerticalScroll
+from textual.app import ComposeResult
 from rich.table import Table
 from rich.text import Text
 from rich.console import Group
@@ -12,7 +13,7 @@ from ..game.nfg_builder import NFGBuilder
 from ..game.efg_builder import EFGBuilder
 
 
-class VisualizationWidget(Static):
+class VisualizationWidget(VerticalScroll):
     """Widget for visualizing game files (NFG and EFG formats)."""
     
     # Player color scheme
@@ -27,17 +28,15 @@ class VisualizationWidget(Static):
     
     DEFAULT_CSS = """
     VisualizationWidget {
-        height: 1fr;
-        overflow-y: auto;
-        overflow-x: auto;
         padding: 1;
-        background: $surface;
-        border: solid $primary;
     }
     
-    VisualizationWidget > .visualization-content {
-        width: auto;
-        height: auto;
+    #visualization-container {
+        height: 1fr;
+        border: solid $primary;
+        background: $surface;
+        overflow-x: auto;
+        overflow-y: auto;
     }
     """
     
@@ -46,6 +45,12 @@ class VisualizationWidget(Static):
         super().__init__(*args, **kwargs)
         self._content: str = ""
         self._game_type: Optional[str] = None
+        self._content_widget: Optional[Static] = None
+    
+    def compose(self) -> ComposeResult:
+        """Compose the widget with a Static child for content."""
+        self._content_widget = Static()
+        yield self._content_widget
     
     def set_content(self, content: str):
         """Parse and visualize the game file content.
@@ -56,7 +61,8 @@ class VisualizationWidget(Static):
         self._content = content
         
         if not content or not content.strip():
-            self.update(Text("No content to display", style="dim italic"))
+            if self._content_widget:
+                self._content_widget.update(Text("No content to display", style="dim italic"))
             return
         
         # Auto-detect game type
@@ -68,15 +74,18 @@ class VisualizationWidget(Static):
             elif self._game_type == "EFG":
                 self._visualize_efg(content)
             else:
-                self.update(Text("Unable to detect game format", style="red bold"))
+                if self._content_widget:
+                    self._content_widget.update(Text("Unable to detect game format", style="red bold"))
         except Exception as e:
-            self.update(Text(f"Error visualizing game: {str(e)}", style="red"))
+            if self._content_widget:
+                self._content_widget.update(Text(f"Error visualizing game: {str(e)}", style="red"))
     
     def clear(self):
         """Clear the visualization."""
         self._content = ""
         self._game_type = None
-        self.update(Text("", style="dim"))
+        if self._content_widget:
+            self._content_widget.update(Text("", style="dim"))
     
     def _get_player_color(self, player_index: int) -> str:
         """Get color for a player.
@@ -127,11 +136,13 @@ class VisualizationWidget(Static):
             # For 2-player games, create a payoff matrix table
             if len(builder.players) == 2:
                 table = self._create_2player_matrix(builder)
-                self.update(Group(header, table))
+                if self._content_widget:
+                    self._content_widget.update(Group(header, table))
             else:
                 # For n-player games (n > 2), display as structured text
                 info = self._create_nplayer_info(builder)
-                self.update(Group(header, info))
+                if self._content_widget:
+                    self._content_widget.update(Group(header, info))
                 
         except Exception as e:
             raise ValueError(f"Failed to parse NFG content: {str(e)}")
@@ -265,14 +276,16 @@ class VisualizationWidget(Static):
             # Parse nodes
             nodes = self._parse_all_nodes(content)
             if not nodes:
-                self.update(Group(header, Text("No nodes found in game tree", style="dim italic")))
+                if self._content_widget:
+                    self._content_widget.update(Group(header, Text("No nodes found in game tree", style="dim italic")))
                 return
             
             # Create tree visualization
             tree = Tree("🎮 Game Tree", guide_style="bold bright_blue")
             self._build_rich_tree(tree, nodes, 0, builder)
             
-            self.update(Group(header, tree))
+            if self._content_widget:
+                self._content_widget.update(Group(header, tree))
             
         except Exception as e:
             raise ValueError(f"Failed to parse EFG content: {str(e)}")
@@ -290,7 +303,7 @@ class VisualizationWidget(Static):
         
         nodes = []
         for i, line in enumerate(lines):
-            if i >= 2 and (line.startswith('c ') or line.startswith('p ') or line.startswith('t ')):
+            if i >= 1 and (line.startswith('c ') or line.startswith('p ') or line.startswith('t ')):
                 node_info = self._parse_node_line(line)
                 if node_info:
                     nodes.append(node_info)
@@ -314,30 +327,8 @@ class VisualizationWidget(Static):
         
         node_type, name, player, actions, payoffs, outcome = nodes[index]
         
-        # Create node label and add to tree
-        node = None
-        current_player_color = None
-        
-        if node_type == 'c':
-            label = Text()
-            label.append("○ CHANCE", style="bright_white bold")
-            if name:
-                label.append(f" {name}", style="bright_white")
-            node = parent_tree.add(label)
-            current_player_color = "bright_white"
-            
-        elif node_type == 'p':
-            player_name = builder.players[player - 1] if player and player <= len(builder.players) else f"Player {player}"
-            player_color = self._get_player_color(player - 1)
-            current_player_color = player_color
-            
-            label = Text()
-            label.append(f"● {player_name}", style=f"{player_color} bold")
-            if name:
-                label.append(f" {name}", style=player_color)
-            node = parent_tree.add(label)
-            
-        elif node_type == 't':
+        # Terminal node - add it directly to parent and return
+        if node_type == 't':
             label = Text()
             label.append("■ Terminal", style="white bold")
             
@@ -363,19 +354,40 @@ class VisualizationWidget(Static):
             parent_tree.add(label)
             return index + 1
         
-        # Process children if not terminal and node was created
-        if node and actions and node_type != 't':
+        # Create node label
+        label = Text()
+        current_player_color = None
+        
+        if node_type == 'c':
+            label.append("○ CHANCE", style="bright_white bold")
+            if name:
+                label.append(f" {name}", style="bright_white")
+            current_player_color = "bright_white"
+            
+        elif node_type == 'p':
+            player_name = builder.players[player - 1] if player and player <= len(builder.players) else f"Player {player}"
+            player_color = self._get_player_color(player - 1)
+            current_player_color = player_color
+            
+            label.append(f"● {player_name}", style=f"{player_color} bold")
+            if name:
+                label.append(f" {name}", style=player_color)
+        
+        # Add node to parent
+        node = parent_tree.add(label)
+        
+        # Process children - each action leads to child nodes
+        if actions:
             next_index = index + 1
             
             for action in actions:
-                # Create branch with action label - use player color for their actions
+                # Create branch with action label
                 action_label = Text()
-                action_label.append(f"[{action}]", style=f"{current_player_color} bold")
+                action_label.append(f"[{action}]", style=f"{current_player_color}")
                 branch = node.add(action_label)
                 
-                # Add child node
-                if next_index < len(nodes):
-                    next_index = self._build_rich_tree(branch, nodes, next_index, builder)
+                # Recursively add child nodes under this action branch
+                next_index = self._build_rich_tree(branch, nodes, next_index, builder)
             
             return next_index
         
