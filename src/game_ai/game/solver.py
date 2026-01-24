@@ -317,18 +317,36 @@ class GameSolver:
             'is_pure': True
         }
         
-        # Extract strategy probabilities for each player
-        for player in game.players:
-            player_strats = {}
-            for strategy in player.strategies:
-                prob = float(equilibrium[strategy])
-                player_strats[strategy.label] = prob
+        # Check if this is a behavior strategy profile (extensive form game)
+        # or a mixed strategy profile (strategic form game)
+        if hasattr(equilibrium, 'infoset_prob'):
+            # Behavior strategy profile - format by infosets and actions
+            for player in game.players:
+                player_strats = {}
+                for infoset in player.infosets:
+                    for action in infoset.actions:
+                        prob = float(equilibrium[action])
+                        action_label = f"{infoset.label}:{action.label}" if infoset.label else action.label
+                        player_strats[action_label] = prob
+                        
+                        # Check if this is a mixed strategy
+                        if prob > 0 and prob < 1:
+                            eq_data['is_pure'] = False
                 
-                # Check if this is a mixed strategy
-                if prob > 0 and prob < 1:
-                    eq_data['is_pure'] = False
-            
-            eq_data['strategies'][player.label] = player_strats
+                eq_data['strategies'][player.label] = player_strats
+        else:
+            # Mixed strategy profile - format by strategies
+            for player in game.players:
+                player_strats = {}
+                for strategy in player.strategies:
+                    prob = float(equilibrium[strategy])
+                    player_strats[strategy.label] = prob
+                    
+                    # Check if this is a mixed strategy
+                    if prob > 0 and prob < 1:
+                        eq_data['is_pure'] = False
+                
+                eq_data['strategies'][player.label] = player_strats
         
         # Calculate expected payoffs
         try:
