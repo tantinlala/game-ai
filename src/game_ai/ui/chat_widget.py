@@ -161,9 +161,6 @@ class ChatWidget(Vertical):
         if not self.game_builder or not self.editor_widget:
             return
         
-        # Show loading indicator
-        self.show_loading()
-        
         # Check for editor changes
         current_editor_content = self.editor_widget.get_content()
         file_diff = None
@@ -187,9 +184,6 @@ class ChatWidget(Vertical):
         try:
             response = self.game_builder.send_message(message, file_diff=file_diff)
             
-            # Hide loading indicator
-            self.hide_loading()
-            
             # Update editor if new content
             if response.get('file_content'):
                 self.editor_widget.set_content(response['file_content'])
@@ -199,28 +193,7 @@ class ChatWidget(Vertical):
             self.display_assistant_message(response['text'], response.get('sources', []))
         
         except Exception as e:
-            self.hide_loading()
             self.display_error_message(f"Error: {str(e)}")
-    
-    def show_loading(self):
-        """Show loading indicator while waiting for AI response."""
-        log = self.query_one("#message-container", RichLog)
-        
-        # Create a loading panel with animated dots
-        loading_text = Text("●●●", style="dim green")
-        panel = Panel(
-            loading_text,
-            title="AI Assistant",
-            title_align="left",
-            border_style="dim green"
-        )
-        log.write(panel)
-    
-    def hide_loading(self):
-        """Hide loading indicator."""
-        # The loading message will be replaced by the actual response
-        # so we don't need to explicitly remove it
-        pass
     
     def display_user_message(self, message: str):
         """Display user message in chat.

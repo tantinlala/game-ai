@@ -229,13 +229,11 @@ class TestChatWidgetContextHandling:
         widget.editor_widget = mock_editor
         widget.last_editor_content = "Old content"
         
-        widget.show_loading = Mock()
         widget.process_ai_response = Mock()
         
         widget.handle_user_message("Update the game")
         
         # Should detect file change and include in context
-        widget.show_loading.assert_called_once()
         widget.process_ai_response.assert_called_once()
     
     def test_handle_user_message_without_file_diff(self):
@@ -249,7 +247,6 @@ class TestChatWidgetContextHandling:
         widget.editor_widget = mock_editor
         widget.last_editor_content = "Same content"
         
-        widget.show_loading = Mock()
         widget.process_ai_response = Mock()
         
         widget.handle_user_message("Tell me more")
