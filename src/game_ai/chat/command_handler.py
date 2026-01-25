@@ -63,9 +63,10 @@ class CommandHandler:
 • `/save <name>` - Save current session with given name
 • `/load <name>` - Load a saved session
 • `/list` - List all saved sessions
-• `/solve [solver]` - Compute Nash equilibria for current game
+• `/solve [solver] [summary]` - Compute Nash equilibria for current game
   - Optional solvers: `enumpure`, `enummixed`, `lcp`, `lp`, `liap`, `gnm`
-  - Example: `/solve lcp` or just `/solve` for auto-selection
+  - Optional `summary`: Add `summary` or `--summary` to get AI explanation
+  - Example: `/solve lcp summary` or just `/solve summary`
 • `/fix` - Fix current game file syntax
 • `/export <path>` - Export game file to disk (e.g., /export game.nfg)
 • `/clear` - Clear current session and start fresh
@@ -173,8 +174,16 @@ class CommandHandler:
                 'message': "No game file to solve. Create a game first through conversation."
             }
         
-        # Parse solver argument if provided
-        solver = args.strip() if args.strip() else None
+        # Parse solver and summary arguments if provided
+        request_summary = False
+        solver = None
+        
+        args_parts = args.strip().split()
+        for part in args_parts:
+            if part.lower() in ('summary', '--summary'):
+                request_summary = True
+            elif solver is None:  # First non-summary part is treated as solver
+                solver = part
         
         # Fix/Check for errors first
         errors = GameValidator.validate(game_content)
@@ -323,7 +332,10 @@ class CommandHandler:
         return {
             'success': True,
             'message': message,
-            'data': {'result': result}
+            'data': {
+                'result': result,
+                'request_summary': request_summary
+            }
         }
     
     def cmd_export(self, args: str, context: Dict[str, Any]) -> Dict[str, Any]:

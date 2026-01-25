@@ -1,7 +1,7 @@
 # Test Coverage Summary
 
 ## Overview
-Comprehensive pytest test suite with **130 tests** covering all modules in the game-ai project.
+Comprehensive pytest test suite with **132 tests** covering all modules in the game-ai project.
 
 ## Test Files Created
 
@@ -162,6 +162,11 @@ Tests for automatic AI fix requests:
 - ✅ /fix error triggers AI fix
 - ✅ /solve error does not trigger AI fix
 - ✅ Other command errors do not trigger AI fix
+
+### 12. tests/test_ai_solve_summary.py (2 tests)
+Tests for automatic AI solution summaries:
+- ✅ Successful /solve triggers AI summary request
+- ✅ Failed /solve does not trigger AI summary request
 
 ## Test Markers
 

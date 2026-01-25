@@ -137,6 +137,17 @@ class ChatWidget(Vertical):
         # Display result
         if result['success']:
             self.display_system_message(result['message'])
+            
+            # For successful solve, automatically ask AI to summarize if requested
+            data = result.get('data', {})
+            if command.startswith('/solve') and data.get('request_summary'):
+                self.display_system_message("Asking AI for a summary of the equilibria...")
+                summary_prompt = (
+                    f"I have computed the Nash equilibria for the game. Here is the solution summary:\n\n"
+                    f"{result['message']}\n\n"
+                    f"Please summarize each Nash equilibria found in plain English, explaining what it means for the players."
+                )
+                self.process_ai_response(summary_prompt, None)
         else:
             self.display_error_message(result['message'])
             

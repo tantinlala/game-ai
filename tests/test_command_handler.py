@@ -147,6 +147,22 @@ class TestCommandHandler:
         result = command_handler.handle_command("/solve enumpure", sample_context)
         
         assert result['success'] is True
+        assert result['data'].get('request_summary') is False
+
+    def test_cmd_solve_with_summary_arg(self, command_handler, sample_context):
+        """Test /solve with summary flag."""
+        result = command_handler.handle_command("/solve summary", sample_context)
+        
+        assert result['success'] is True
+        assert result['data'].get('request_summary') is True
+
+    def test_cmd_solve_with_both_args(self, command_handler, sample_context):
+        """Test /solve with both solver and summary flag."""
+        # Order shouldn't strictly matter for summary, but solver should be first non-summary arg
+        result = command_handler.handle_command("/solve enumpure summary", sample_context)
+        
+        assert result['success'] is True
+        assert result['data'].get('request_summary') is True
     
     def test_cmd_export(self, command_handler, sample_context, temp_dir):
         """Test /export command."""
