@@ -89,9 +89,19 @@ class TestGameSolver:
         # Battle of the Sexes - has multiple equilibria
         content = """NFG 1 R "Battle of Sexes"
 { "Player 1" "Player 2" }
-{ 2 2 }
 
-2 1 0 0 0 0 1 2"""
+{
+{ "Opera" "Football" }
+{ "Opera" "Football" }
+}
+
+{
+{ "Both Opera" 2, 1 }
+{ "P1 Opera P2 Football" 0, 0 }
+{ "P1 Football P2 Opera" 0, 0 }
+{ "Both Football" 1, 2 }
+}
+1 2 3 4"""
         
         result = GameSolver.solve_from_content(content)
         assert result.is_success()

@@ -109,7 +109,7 @@ class TestEditorWidget:
         mock_text_area = Mock()
         widget.query_one = Mock(return_value=mock_text_area)
         
-        test_content = "NFG 1 R \"Test\"\n{ \"P1\" }\n{ 2 }\n\n1 2"
+        test_content = "NFG 1 R \"Test\"\n{ \"P1\" }\n\n{\n{ \"A\" \"B\" }\n}\n\n{\n{ \"Outcome A\" 1 }\n{ \"Outcome B\" 2 }\n}\n1 2"
         widget.set_content(test_content)
         
         # Simulate the text area storing the content

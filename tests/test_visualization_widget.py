@@ -173,8 +173,15 @@ class TestVisualizationMethods:
         # Malformed game that pygambit can't parse
         bad_content = """NFG 1 R "Bad Game"
 { "Player 1" }
-{ 2 }
-1"""  # Missing payoffs
+
+{
+{ "A" "B" }
+}
+
+{
+{ "Outcome A" 1 }
+}
+1 2 3"""  # Wrong number of outcome indices
         
         # Should not raise exception
         widget.set_content(bad_content)

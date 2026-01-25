@@ -1,5 +1,15 @@
 NFG 1 R "Matching Pennies"
 { "Player 1" "Player 2" }
-{ 2 2 }
 
-1 -1 -1 1 -1 1 1 -1
+{
+{ "Heads" "Tails" }
+{ "Heads" "Tails" }
+}
+
+{
+{ "Both Heads" 1, -1 }
+{ "P1 Heads P2 Tails" -1, 1 }
+{ "P1 Tails P2 Heads" -1, 1 }
+{ "Both Tails" 1, -1 }
+}
+1 2 3 4

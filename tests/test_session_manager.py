@@ -16,7 +16,7 @@ class TestSessionManager:
             {"role": "user", "content": "Create a game"},
             {"role": "assistant", "content": "Sure!"}
         ]
-        game_content = "NFG 1 R \"Test\" { \"P1\" } { 2 }\n1 2"
+        game_content = "NFG 1 R \"Test\" { \"P1\" }\n\n{\n{ \"A\" \"B\" }\n}\n\n{\n{ \"Outcome A\" 1 }\n{ \"Outcome B\" 2 }\n}\n1 2"
         
         success = mock_session_manager.save_session(
             name="test_session",
@@ -31,7 +31,7 @@ class TestSessionManager:
         """Test loading a saved session."""
         # First save a session
         history = [{"role": "user", "content": "Hello"}]
-        game_content = "NFG 1 R \"Test\" { \"P1\" } { 2 }\n1 2"
+        game_content = "NFG 1 R \"Test\" { \"P1\" }\n\n{\n{ \"A\" \"B\" }\n}\n\n{\n{ \"Outcome A\" 1 }\n{ \"Outcome B\" 2 }\n}\n1 2"
         
         mock_session_manager.save_session(
             name="load_test",
@@ -160,7 +160,7 @@ class TestExportFunction:
     
     def test_export_game_file(self, mock_session_manager, temp_dir):
         """Test exporting a game file."""
-        content = "NFG 1 R \"Test\" { \"P1\" } { 2 }\n1 2"
+        content = "NFG 1 R \"Test\" { \"P1\" }\n\n{\n{ \"A\" \"B\" }\n}\n\n{\n{ \"Outcome A\" 1 }\n{ \"Outcome B\" 2 }\n}\n1 2"
         export_path = temp_dir / "exported_game.nfg"
         
         success = mock_session_manager.export_game_file(
@@ -174,7 +174,7 @@ class TestExportFunction:
     
     def test_export_creates_directories(self, mock_session_manager, temp_dir):
         """Test that export creates parent directories."""
-        content = "NFG 1 R \"Test\" { \"P1\" } { 2 }\n1 2"
+        content = "NFG 1 R \"Test\" { \"P1\" }\n\n{\n{ \"A\" \"B\" }\n}\n\n{\n{ \"Outcome A\" 1 }\n{ \"Outcome B\" 2 }\n}\n1 2"
         export_path = temp_dir / "subdir" / "nested" / "game.nfg"
         
         success = mock_session_manager.export_game_file(

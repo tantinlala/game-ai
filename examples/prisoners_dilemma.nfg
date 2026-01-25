@@ -1,5 +1,15 @@
 NFG 1 R "Prisoner's Dilemma"
 { "Player 1" "Player 2" }
-{ 2 2 }
 
-3 3 0 5 5 0 1 1
+{
+{ "Cooperate" "Defect" }
+{ "Cooperate" "Defect" }
+}
+
+{
+{ "Both Cooperate" 3, 3 }
+{ "P1 Defects" 5, 0 }
+{ "P2 Defects" 0, 5 }
+{ "Both Defect" 1, 1 }
+}
+1 2 3 4

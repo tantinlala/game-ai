@@ -9,9 +9,19 @@ from pathlib import Path
 # Sample game files for testing
 SAMPLE_NFG = """NFG 1 R "Prisoner's Dilemma"
 { "Player 1" "Player 2" }
-{ 2 2 }
 
-3 3 0 5 5 0 1 1"""
+{
+{ "Cooperate" "Defect" }
+{ "Cooperate" "Defect" }
+}
+
+{
+{ "Both Cooperate" 3, 3 }
+{ "P1 Defects" 5, 0 }
+{ "P2 Defects" 0, 5 }
+{ "Both Defect" 1, 1 }
+}
+1 2 3 4"""
 
 SAMPLE_EFG = """EFG 2 R "Simplified Poker"
 { "Player 1" "Player 2" }
@@ -34,9 +44,15 @@ t "Low Check-Check" 8 "Showdown" { -1 1 }"""
 
 INVALID_NFG = """NFG 1 R "Invalid Game"
 { "Player 1" }
-{ 2 }
 
-1 2 3"""  # Wrong number of payoffs
+{
+{ "A" "B" }
+}
+
+{
+{ "Outcome1" 1 }
+}
+1 2 3"""  # Wrong number of outcome indices
 
 
 @pytest.fixture

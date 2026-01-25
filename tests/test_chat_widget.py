@@ -261,7 +261,7 @@ class TestChatWidgetContextHandling:
         widget = ChatWidget()
         mock_command_handler = Mock()
         mock_editor = Mock()
-        mock_editor.get_content.return_value = "NFG 1 R \"Test\" { \"P1\" } { 2 }\n1 2"
+        mock_editor.get_content.return_value = "NFG 1 R \"Test\" { \"P1\" }\n\n{\n{ \"A\" \"B\" }\n}\n\n{\n{ \"Outcome A\" 1 }\n{ \"Outcome B\" 2 }\n}\n1 2"
         mock_game_builder = Mock()
         mock_game_builder.get_conversation_history.return_value = []
         

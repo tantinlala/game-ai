@@ -54,8 +54,15 @@ class TestGameBuilder:
         # Mock response with game file
         game_content = """NFG 1 R "Test Game"
 { "Player 1" }
-{ 2 }
 
+{
+{ "A" "B" }
+}
+
+{
+{ "Outcome A" 1 }
+{ "Outcome B" 2 }
+}
 1 2"""
         mock_response = {
             'text': f'Here is your game:\n```nfg\n{game_content}\n```',
@@ -120,8 +127,15 @@ class TestGameBuilder:
         
         game_content = """NFG 1 R "Test"
 { "P1" }
-{ 2 }
 
+{
+{ "A" "B" }
+}
+
+{
+{ "Outcome A" 1 }
+{ "Outcome B" 2 }
+}
 1 2"""
         mock_response = {
             'text': f'Here is your game:\n\n```\n{game_content}\n```\n\n',
@@ -161,8 +175,15 @@ class TestExtractGameFile:
 ```nfg
 NFG 1 R "Test"
 { "P1" }
-{ 2 }
 
+{
+{ "A" "B" }
+}
+
+{
+{ "Outcome A" 1 }
+{ "Outcome B" 2 }
+}
 1 2
 ```
 """
@@ -192,8 +213,15 @@ t "" 0 { 1 }
 
 NFG 1 R "Test"
 { "P1" }
-{ 2 }
 
+{
+{ "A" "B" }
+}
+
+{
+{ "Outcome A" 1 }
+{ "Outcome B" 2 }
+}
 1 2
 
 Let me know if you need changes."""
@@ -224,7 +252,7 @@ class TestLoadConversation:
             {"role": "user", "content": "Create game"},
             {"role": "assistant", "content": "Here you go"}
         ]
-        game_content = "NFG 1 R \"Test\" { \"P1\" } { 2 }\n1 2"
+        game_content = "NFG 1 R \"Test\" { \"P1\" }\n\n{\n{ \"A\" \"B\" }\n}\n\n{\n{ \"Outcome A\" 1 }\n{ \"Outcome B\" 2 }\n}\n1 2"
         
         builder.load_conversation(history, game_content, "nfg")
         

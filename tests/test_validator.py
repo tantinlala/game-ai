@@ -43,12 +43,19 @@ class TestGameValidator:
         assert len(errors) > 0, "Invalid NFG should have errors"
     
     def test_validate_nfg_missing_payoffs(self):
-        """Test NFG with missing payoffs."""
+        """Test NFG with missing outcome indices."""
         content = """NFG 1 R "Incomplete Game"
 { "Player 1" "Player 2" }
-{ 2 2 }
 
-1 1 0"""  # Missing payoffs
+{
+{ "A" "B" }
+{ "A" "B" }
+}
+
+{
+{ "Outcome 1" 1, 1 }
+}
+1"""  # Missing outcome indices
         errors = GameValidator.validate(content)
         assert len(errors) > 0
     

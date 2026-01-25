@@ -21,29 +21,43 @@ SYSTEM_PROMPT = """You are an expert game theory assistant focused on helping us
 
 Remember: You help BUILD games iteratively for behavior prediction. Users will refine games over multiple messages. The current game file is always visible in the editor pane.
 
-For a strategic form game, guide the user through:
-1. How many players? (typically 2-4 for tractability)
-2. What strategies/actions does each player have?
-3. What are the payoffs for each strategy profile?
-
-The following is documentation on the strategic form format:
+## The following is documentation on the strategic form format:
 
 This file format defines a strategic N-player game. In this version,
-the payoffs are listed in a tabular format. See the next section for a
-version of this format in which outcomes can be used to identify an
-equivalence among multiple strategy profiles.
+the payoffs are defined by means of outcomes, which may appear more
+than one place in the game table. This may give a more compact means
+of representing a game where many different strategy combinations map
+to the same consequences for the players. For a version of this format
+in which payoffs are listed explicitly, without identification by
+outcomes, see the previous section.
+
+
 
 A sample file
 -------------
 
 This is a sample file illustrating the general format of the file.
-This file is distributed in the Gambit distribution under the name
-e02.nfg::
+This file defines the same game as the example in the previous
+section::
 
-    NFG 1 R "Selten (IJGT, 75), Figure 2, normal form"
-    { "Player 1" "Player 2" } { 3 2 }
+    NFG 1 R "Selten (IJGT, 75), Figure 2, normal form" { "Player 1" "Player 2" }
 
-    1 1 0 2 0 2 1 1 0 3 2 0
+    {
+    { "1" "2" "3" }
+    { "1" "2" }
+    }
+
+    {
+    { "" 1, 1 }
+    { "" 0, 2 }
+    { "" 0, 2 }
+    { "" 1, 1 }
+    { "" 0, 3 }
+    { "" 2, 0 }
+    }
+    1 2 3 4 5 6
+
+
 
 
 Structure of the prologue
@@ -65,71 +79,45 @@ semicolons, or any other character). The order of the players is
 significant; the first entry in the list will be numbered as player 1,
 the second entry as player 2, and so forth.
 
-Following the list of players is a list of positive integers. This
-list specifies the number of strategies available to each player,
-given in the same order as the players are listed in the list of
-players.
+Following the list of players is a list of strategies. This is a
+nested list; each player's strategies are given as a list of text
+labels, surrounded by curly braces.
 
-The prologue concludes with an optional text comment field.
+The nested strategy list is followed by an optional text comment
+field.
+
+The prologue closes with a list of outcomes. This is also a nested
+list. Each outcome is specified by a text string, followed by a list
+of numerical payoffs, one for each player defined. The payoffs may
+optionally be separated by commas, as in the example file. The
+outcomes are implicitly numbered in the order they appear; the first
+outcome is given the number 1, the second 2, and so forth.
 
 
-Structure of the body (list of payoffs)
----------------------------------------
+Structure of the body (list of outcomes)
+----------------------------------------
 
-The body of the format lists the payoffs in the game. This is a "flat"
-list, not surrounded by braces or other punctuation.
+The body of the file is a list of outcome indices. These are presented
+in the same lexicographic order as the payoffs in the payoff file
+format; please see the documentation of that format for the
+description of the ordering. For each entry in the table, a
+nonnegative integer is given, corresponding to the outcome number
+assigned as described in the prologue section. The special outcome
+number 0 is reserved for the "null" outcome, which is defined as a
+payoff of zero to all players. The number of entries in this list,
+then, should be the same as the product of the number of strategies
+for all players in the game.
 
-The assignment of the numeric data in this list to the entries in the
-strategic game table proceeds as follows. The list begins with the
-strategy profile in which each player plays their first strategy. The
-payoffs to all players in this contingency are listed in the same
-order as the players are given in the prologue. This, in the example
-file, the first two payoff entries are 1 1 , which means, when both
-players play their first strategy, player 1 receives a payoff of 1,
-and player 2 receives a payoff of 1.
+## The following is documentation on the extensive form format:
 
-Next, the strategy of the first player is incremented. Thus, player
-1's strategy is incremented to his second strategy. In this case, when
-player 1 plays his second strategy and player 2 his first strategy,
-the payoffs are 0 2 : a payoff of 0 to player 1 and a payoff of 2 to
-player 2.
+The extensive game (.efg) file format has been used by Gambit, with
+minor variations, to represent extensive games since circa 1994. It
+replaced an earlier format, which had no particular name but which had
+the conventional extension .dt1. It is intended that some new formats
+will be introduced in the future; however, this format will be
+supported by Gambit, possibly through the use of converter programs to
+those putative future formats, for the foreseeable future.
 
-Now the strategy of the first player is again incremented. Thus, the
-first player is playing his third strategy, and the second player his
-first strategy; the payoffs are again 0 2 .
-
-Now, the strategy of the first player is incremented yet again. But,
-the first player was already playing strategy number 3 of 3. Thus, his
-strategy now "rolls over" to 1, and the strategy of the second player
-increments to 2. Then, the next entries 1 1 correspond to the payoffs
-of player 1 and player 2, respectively, in the case where player 1
-plays his second strategy, and player 2 his first strategy.
-
-In general, the ordering of contingencies is done in the same way that
-we count: incrementing the least-significant digit place in the number
-first, and then incrementing more significant digit places in the
-number as the lower ones "roll over." The only differences are that
-the counting starts with the digit 1, instead of 0, and that the
-"base" used for each digit is not 10, but instead is the number of
-strategies that player has in the game.
-
-Example of a valid NFG file (Prisoner's Dilemma):
-```
-NFG 1 R "Prisoner's Dilemma"
-{ "Player 1" "Player 2" }
-{ 2 2 }
-
-3 3 0 5 5 0 1 1
-```
-
-For an extensive form game, guide the user through:
-1. How many players?
-2. What is the sequence of moves?
-3. Are there any chance/nature moves?
-4. What information do players have at each decision point? (perfect vs imperfect information)
-5. What are the payoffs at terminal nodes?
-
-The following is documentation on the extensive form format:
 
 A sample file
 -------------
@@ -283,30 +271,11 @@ the character t . Following this, in order, are:
 
 There is no explicit end-of-file delimiter for the file.
 
-Example of a valid EFG file (Simplified Poker):
-```
-EFG 2 R "Simplified Poker"
-{ "Player 1" "Player 2" }
-
-c "Deal" 1 "(0,1)" { "High" 0.5 "Low" 0.5 } 0
-p "P1 has High" 1 1 "(1,1)" { "Bet" "Check" } 0
-p "P2 after Bet" 2 1 "(2,1)" { "Call" "Fold" } 0
-t "High Bet Called" 1 "Showdown" { 2 -2 }
-t "High Bet Folded" 2 "P2 Folds" { 1 -1 }
-p "P2 after Check" 2 2 "(2,2)" { "Bet" "Check" } 0
-t "High Check-Bet" 3 "P1 Wins" { 1 -1 }
-t "High Check-Check" 4 "Showdown" { 1 -1 }
-p "P1 has Low" 1 2 "(1,2)" { "Bet" "Check" } 0
-p "P2 after Low Bet" 2 3 "(2,3)" { "Call" "Fold" } 0
-t "Low Bet Called" 5 "Showdown" { -2 2 }
-t "Low Bet Folded" 6 "P2 Folds" { 1 -1 }
-p "P2 after Low Check" 2 4 "(2,4)" { "Bet" "Check" } 0
-t "Low Check-Bet" 7 "P2 Wins" { -1 1 }
-t "Low Check-Check" 8 "Showdown" { -1 1 }
-
 ---
 
 Make sure that all infosets have a readable name.
+
+Make sure that all outcomes and strategies have a readable name.
 
 For real-world scenarios (profits, costs, probabilities, market data), automatically run Google Search grounding to find relevant information. Format your response like:
 
