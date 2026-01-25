@@ -354,7 +354,16 @@ class GameSolver:
         else:
             # Mixed strategy profile - format by strategies
             # For extensive form games, convert to behavior strategy profile to show action names
-            if hasattr(game, 'root') and len(game.players[0].infosets) > 0:
+            # Check if this is an extensive form game by checking if players have infosets
+            is_efg = False
+            try:
+                # Try accessing root - will raise exception for NFG games
+                _ = game.root
+                is_efg = len(game.players[0].infosets) > 0 if game.players else False
+            except Exception:
+                is_efg = False
+            
+            if is_efg:
                 # This is an extensive form game - convert to behavior strategy
                 try:
                     behavior_profile = equilibrium.as_behavior()
