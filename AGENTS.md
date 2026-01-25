@@ -11,29 +11,16 @@ All work on this project MUST follow a test-driven development approach. Tests a
 
 ## Virtual Environment Requirement
 
-### MANDATORY: All work MUST be done in a virtual environment
+### MANDATORY: All work MUST use the project’s configured virtual environment
 
-Before starting any development work, you MUST:
+Environment setup is handled automatically by the workspace tooling (e.g., VS Code auto-activation). You do not need to manually activate a venv or check `pytest` availability.
 
-1. **Check if virtual environment exists and is activated:**
-   ```bash
-   # Check if venv is active
-   echo $VIRTUAL_ENV
-   ```
+Guidelines:
+- Use the workspace’s configured Python interpreter for all Python, packaging, and test commands.
+- If no environment exists, create one following [QUICKSTART.md](QUICKSTART.md#installation); activation will be handled automatically by the IDE.
+- Install dependencies into the environment with `pip install -e .`.
 
-2. **If venv exists but is not active, activate it:**
-   ```bash
-   source /Users/nicholas/game-ai/venv/bin/activate
-   ```
-
-3. **If venv does not exist, follow the setup instructions in [QUICKSTART.md](QUICKSTART.md#installation).**
-
-4. **Verify pytest is available:**
-   ```bash
-   pytest --version
-   ```
-
-**NEVER run Python code, tests, or install packages outside the virtual environment.**
+**NEVER run Python code, tests, or install packages outside the project’s virtual environment.**
 
 ---
 
@@ -134,11 +121,9 @@ flowchart TD
 - **MUST** fix failures at each level before proceeding
 
 ### Rule 10: Virtual Environment Discipline (MANDATORY)
-- **MUST** activate virtual environment before any Python work
-- **MUST** verify correct Python version: `python --version` (should be 3.11.4)
-- **MUST** install dependencies in venv: `pip install -e .`
-- **MUST** verify pytest availability before running tests
-
+- **MUST** use the workspace’s configured virtual environment for all Python work (auto-activated in IDEs like VS Code)
+- **MUST** verify correct Python version when needed: `python --version` (target 3.11.4) using the configured interpreter
+- **MUST** install dependencies in the environment: `pip install -e .`
 ---
 
 ## Real-World Example: Bug Discovery Through Testing
@@ -373,7 +358,7 @@ pytest -m ui               # Run only UI tests
 
 When working on the game-ai project, you MUST:
 
-1. ✅ **Activate the virtual environment** before any work
+1. ✅ **Use the configured virtual environment** (auto-activated; no manual `source` required)
 2. ✅ **Check if tests already exist** for the feature/module (consult TEST_COVERAGE.md)
 3. ✅ **Write tests first** (TDD approach)
 4. ✅ **Run tests after every change**

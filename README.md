@@ -52,6 +52,7 @@ game-ai
 
 The project uses `pytest` for testing. See [TEST_COVERAGE.md](TEST_COVERAGE.md) for a detailed list of all 134 test cases.
 
+
 ```bash
 # Run all tests
 pytest tests/
