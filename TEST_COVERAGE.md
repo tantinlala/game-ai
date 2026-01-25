@@ -1,7 +1,7 @@
 # Test Coverage Summary
 
 ## Overview
-Comprehensive pytest test suite with **127 tests** covering all modules in the game-ai project.
+Comprehensive pytest test suite with **130 tests** covering all modules in the game-ai project.
 
 ## Test Files Created
 
@@ -156,6 +156,12 @@ Tests for `game_ai.ui.chat_widget`:
 - ✅ User message with file diff
 - ✅ User message without file diff
 - ✅ Command context with game content
+
+### 11. tests/test_ai_error_fix.py (3 tests)
+Tests for automatic AI fix requests:
+- ✅ /validate error triggers AI fix
+- ✅ /solve error triggers AI fix
+- ✅ Other command errors do not trigger AI fix
 
 ## Test Markers
 
