@@ -1,18 +1,16 @@
-EFG 2 R "Simplified Poker"
-{ "Player 1" "Player 2" }
-
-c "Deal" 1 "(0,1)" { "High" 0.5 "Low" 0.5 } 0
-p "P1 has High" 1 1 "(1,1)" { "Bet" "Check" } 0
-p "P2 after Bet" 2 1 "(2,1)" { "Call" "Fold" } 0
-t "High Bet Called" 1 "Showdown" { 2 -2 }
-t "High Bet Folded" 2 "P2 Folds" { 1 -1 }
-p "P2 after Check" 2 2 "(2,2)" { "Bet" "Check" } 0
-t "High Check-Bet" 3 "P1 Wins" { 1 -1 }
-t "High Check-Check" 4 "Showdown" { 1 -1 }
-p "P1 has Low" 1 2 "(1,2)" { "Bet" "Check" } 0
-p "P2 after Low Bet" 2 3 "(2,3)" { "Call" "Fold" } 0
-t "Low Bet Called" 5 "Showdown" { -2 2 }
-t "Low Bet Folded" 6 "P2 Folds" { 1 -1 }
-p "P2 after Low Check" 2 4 "(2,4)" { "Bet" "Check" } 0
-t "Low Check-Bet" 7 "P2 Wins" { -1 1 }
-t "Low Check-Check" 8 "Showdown" { -1 1 }
+EFG 2 R "Simplified Poker" { "Player 1" "Player 2" }
+c "Deal" 1 "Nature's Deal" { "High Card" 0.5 "Low Card" 0.5 } 0
+p "P1 Has High" 1 1 "P1 Sees Card" { "Bet" "Check" } 0
+p "P2 Faces Bet" 2 1 "P2 Responds to Bet" { "Call" "Fold" } 0
+t "Showdown After Call" 1 "P1 Wins Showdown" { 2, -2 }
+t "P2 Folds to Bet" 2 "P2 Concedes" { 1, -1 }
+p "P2 After Check" 2 2 "P2 After P1 Checks" { "Bet" "Check" } 0
+t "P2 Bets After Check" 3 "P2 Wins Uncontested" { -1, 1 }
+t "Both Check" 4 "Showdown No Bets" { 1, -1 }
+p "P1 Has Low" 1 1 "P1 Sees Card" { "Bet" "Check" } 0
+p "P2 Faces Bluff" 2 1 "P2 Responds to Bet" { "Call" "Fold" } 0
+t "Bluff Called" 5 "P2 Catches Bluff" { -2, 2 }
+t "Bluff Works" 6 "P2 Concedes" { 1, -1 }
+p "P2 After Low Check" 2 2 "P2 After P1 Checks" { "Bet" "Check" } 0
+t "P2 Bets vs Low" 7 "P2 Takes Pot" { -1, 1 }
+t "Both Check Low" 8 "P2 Wins Showdown" { -1, 1 }

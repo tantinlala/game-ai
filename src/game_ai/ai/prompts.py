@@ -31,34 +31,28 @@ to the same consequences for the players. For a version of this format
 in which payoffs are listed explicitly, without identification by
 outcomes, see the previous section.
 
-
-
 A sample file
 -------------
 
-This is a sample file illustrating the general format of the file.
-This file defines the same game as the example in the previous
-section::
+This is a sample file illustrating the general format of the file
+(Prisoner's Dilemma):
 
-    NFG 1 R "Selten (IJGT, 75), Figure 2, normal form" { "Player 1" "Player 2" }
+```
+NFG 1 R "Prisoner's Dilemma" { "Suspect 1" "Suspect 2" }
 
-    {
-    { "1" "2" "3" }
-    { "1" "2" }
-    }
+{
+{ "Stay Silent" "Confess" }
+{ "Stay Silent" "Confess" }
+}
 
-    {
-    { "" 1, 1 }
-    { "" 0, 2 }
-    { "" 0, 2 }
-    { "" 1, 1 }
-    { "" 0, 3 }
-    { "" 2, 0 }
-    }
-    1 2 3 4 5 6
-
-
-
+{
+{ "Both Silent" 3, 3 }
+{ "S1 Confesses" 5, 0 }
+{ "S2 Confesses" 0, 5 }
+{ "Both Confess" 1, 1 }
+}
+1 2 3 4
+```
 
 Structure of the prologue
 -------------------------
@@ -122,41 +116,27 @@ those putative future formats, for the foreseeable future.
 A sample file
 -------------
 
-This is a sample file illustrating the general format of the file::
+This is a sample file illustrating the general format of the file
+(Simplified Poker with two card types):
 
-    EFG 2 R "General Bayes game, one stage" { "Player 1" "Player 2" }
-    c "ROOT" 1 "(0,1)" { "1G" 0.500000 "1B" 0.500000 } 0
-    c "" 2 "(0,2)" { "2g" 0.500000 "2b" 0.500000 } 0
-    p "" 1 1 "(1,1)" { "H" "L" } 0
-    p "" 2 1 "(2,1)" { "h" "l" } 0
-    t "" 1 "Outcome 1" { 10.000000 2.000000 }
-    t "" 2 "Outcome 2" { 0.000000 10.000000 }
-    p "" 2 1 "(2,1)" { "h" "l" } 0
-    t "" 3 "Outcome 3" { 2.000000 4.000000 }
-    t "" 4 "Outcome 4" { 4.000000 0.000000 }
-    p "" 1 1 "(1,1)" { "H" "L" } 0
-    p "" 2 2 "(2,2)" { "h" "l" } 0
-    t "" 5 "Outcome 5" { 10.000000 2.000000 }
-    t "" 6 "Outcome 6" { 0.000000 10.000000 }
-    p "" 2 2 "(2,2)" { "h" "l" } 0
-    t "" 7 "Outcome 7" { 2.000000 4.000000 }
-    t "" 8 "Outcome 8" { 4.000000 0.000000 }
-    c "" 3 "(0,3)" { "2g" 0.500000 "2b" 0.500000 } 0
-    p "" 1 2 "(1,2)" { "H" "L" } 0
-    p "" 2 1 "(2,1)" { "h" "l" } 0
-    t "" 9 "Outcome 9" { 4.000000 2.000000 }
-    t "" 10 "Outcome 10" { 2.000000 10.000000 }
-    p "" 2 1 "(2,1)" { "h" "l" } 0
-    t "" 11 "Outcome 11" { 0.000000 4.000000 }
-    t "" 12 "Outcome 12" { 10.000000 2.000000 }
-    p "" 1 2 "(1,2)" { "H" "L" } 0
-    p "" 2 2 "(2,2)" { "h" "l" } 0
-    t "" 13 "Outcome 13" { 4.000000 2.000000 }
-    t "" 14 "Outcome 14" { 2.000000 10.000000 }
-    p "" 2 2 "(2,2)" { "h" "l" } 0
-    t "" 15 "Outcome 15" { 0.000000 4.000000 }
-    t "" 16 "Outcome 16" { 10.000000 0.000000 }
-
+```
+EFG 2 R "Simplified Poker" { "Player 1" "Player 2" }
+c "Deal" 1 "Nature's Deal" { "High Card" 0.5 "Low Card" 0.5 } 0
+p "P1 Has High" 1 1 "P1 Sees Card" { "Bet" "Check" } 0
+p "P2 Faces Bet" 2 1 "P2 Responds to Bet" { "Call" "Fold" } 0
+t "Showdown After Call" 1 "P1 Wins Showdown" { 2, -2 }
+t "P2 Folds to Bet" 2 "P2 Concedes" { 1, -1 }
+p "P2 After Check" 2 2 "P2 After P1 Checks" { "Bet" "Check" } 0
+t "P2 Bets After Check" 3 "P2 Wins Uncontested" { -1, 1 }
+t "Both Check" 4 "Showdown No Bets" { 1, -1 }
+p "P1 Has Low" 1 1 "P1 Sees Card" { "Bet" "Check" } 0
+p "P2 Faces Bluff" 2 1 "P2 Responds to Bet" { "Call" "Fold" } 0
+t "Bluff Called" 5 "P2 Catches Bluff" { -2, 2 }
+t "Bluff Works" 6 "P2 Concedes" { 1, -1 }
+p "P2 After Low Check" 2 2 "P2 After P1 Checks" { "Bet" "Check" } 0
+t "P2 Bets vs Low" 7 "P2 Takes Pot" { -1, 1 }
+t "Both Check Low" 8 "P2 Wins Showdown" { -1, 1 }
+```
 
 Structure of the prologue
 -------------------------
