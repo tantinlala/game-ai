@@ -82,16 +82,17 @@ The AI will compute and display Nash equilibria with probabilities and payoffs.
 ```
 
 ## Commands
+Type `/help` in the app for live help.
 
-For a full list of all available commands and their arguments, see the [Commands section in README.md](README.md#commands) or type `/help` within the application.
-
-### Key Commands for the Tutorial:
+Available commands:
+- `/help` - Show available commands
+- `/save <name>` - Save current session
+- `/load <name>` - Load saved session
+- `/list` - List all saved sessions
 - `/solve` - Compute Nash equilibria (add `summary` for AI explanation)
-- `/save <name>` - Save your current session
-- `/load <name>` - Load a previously saved session
-- `/list` - List all your saved sessions
 - `/fix` - Fix game file syntax before solving
-- `/export <path>` - Save the current game file to disk (.nfg or .efg)
+- `/export <path>` - Export game file to disk (.nfg or .efg)
+- `/clear` - Clear current session
 
 ## Tips
 
@@ -138,6 +139,32 @@ pip install -e .
 - Some complex games may not converge
 - Try simplifying the game structure
 
+## Development
+
+### Running Tests
+
+The project uses `pytest` for testing. See [TEST_COVERAGE.md](TEST_COVERAGE.md) for a detailed list of all test cases.
+
+Note: In IDEs like VS Code, the project’s virtual environment is auto-activated. There’s no need to manually activate or verify `pytest`; use the configured interpreter.
+
+```bash
+# Run all tests
+pytest tests/
+
+# Run with verbose output
+pytest tests/ -v
+
+# Run specific test file
+pytest tests/test_solver.py
+
+# Run tests by marker
+pytest -m unit          # Unit tests only
+pytest -m ui            # UI widget tests only
+
+# Run with coverage report (terminal + HTML)
+pytest tests/ --cov=game_ai --cov-report=term --cov-report=html
+```
+
 ## Next Steps
 
 - Explore [examples/](examples/) for sample games
@@ -147,7 +174,7 @@ pip install -e .
 ## Need Help?
 
 - Type `/help` in the app
-- Check [README.md](README.md) for detailed docs
+- Check [README.md](README.md) for a project overview
 - Visit the [GitHub repository](https://github.com/tantinlala/game-ai)
 
 Happy game building! 🎮

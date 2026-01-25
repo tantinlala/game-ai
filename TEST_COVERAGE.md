@@ -187,7 +187,7 @@ Tests for UI widgets (may require additional setup):
 
 ## Running Tests
 
-For detailed instructions on running tests, including specific markers and coverage reports, see the [Development section in README.md](README.md#development).
+For detailed instructions on running tests, including specific markers and coverage reports, see the [Development section in QUICKSTART.md](QUICKSTART.md#development).
 
 Basic command:
 ```bash

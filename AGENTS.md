@@ -342,7 +342,7 @@ def test_client(mock_model):
 
 ## Quick Reference Commands
 
-For a comprehensive list of all development and testing commands, see the [Development section in README.md](README.md#development).
+For a comprehensive list of all development and testing commands, see the [Development section in QUICKSTART.md](QUICKSTART.md#development).
 
 ### Core Test Commands
 ```bash
