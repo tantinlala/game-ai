@@ -35,28 +35,23 @@ class GameBuilder:
         # Fixed welcome message
         welcome_message = """Welcome to Game AI! 🎮
 
-I'll help you build game theory models in strategic form (.nfg) or extensive form (.efg) format, and we can compute Nash equilibria together.
+    I help you build strategic form (.nfg) or extensive form (.efg) games to predict how actors behave in your scenario. I will not provide equilibrium predictions here; use `/solve` to run Gambit once the file is ready. For real-world scenarios, I'll automatically ground numbers (costs, probabilities, market shares) using search and state assumptions if data is missing.
 
-**To get started, tell me:**
-- What type of game do you want to create?
-  - **Strategic form** (normal form) for simultaneous move games
-  - **Extensive form** (game tree) for sequential move games
-- What is your game about?
-- Who are the players?
+    **To get started, tell me:**
+    - What is the scenario and who are the actors?
+    - What are they deciding between (simultaneous vs sequential moves)?
+    - Any key constraints or outcomes that matter?
 
-**Example prompts:**
-- "I want to create a prisoner's dilemma game"
-- "Build a sequential entry game with two firms"
-- "Create a coordination game about technology standards"
+    I'll infer sensible defaults and only ask brief clarifications if something is blocking.
 
-**Available commands:**
-Type `/help` at any time to see available commands like `/solve`, `/save`, `/fix`, etc.
+    **Available commands:**
+    Type `/help` at any time to see commands like `/solve`, `/save`, `/fix`, etc.
 
-**Editor Tips:**
-- Drag and then use ctrl+c to copy text.
-- Use ctrl+z and ctrl+y to undo/redo edits.
+    **Editor Tips:**
+    - Drag and then use ctrl+c to copy text.
+    - Use ctrl+z and ctrl+y to undo/redo edits.
 
-Let's build your game!"""
+    Let's build your game."""
         
         self.conversation_history.append({
             "role": "assistant",
