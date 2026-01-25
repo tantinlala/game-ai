@@ -39,10 +39,14 @@ ENV/
 # macOS
 .DS_Store
 
+# Testing / Coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+coverage.xml
+*.cover
+
 # Session files
 sessions/
 *.session
-
-# Game files (temporary)
-*.efg
-*.nfg

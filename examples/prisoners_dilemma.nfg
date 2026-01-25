@@ -1,0 +1,5 @@
+NFG 1 R "Prisoner's Dilemma"
+{ "Player 1" "Player 2" }
+{ 2 2 }
+
+3 3 0 5 5 0 1 1

@@ -81,15 +81,17 @@ The AI will compute and display Nash equilibria with probabilities and payoffs.
 /save my_first_game
 ```
 
-## Example Commands
+## Commands
 
-Try these in the chat:
+For a full list of all available commands and their arguments, see the [Commands section in README.md](README.md#commands) or type `/help` within the application.
 
-- `/help` - See all commands
-- `/fix` - Fix game file syntax
-- `/export game.nfg` - Save to file
-- `/list` - See saved sessions
-- `/load my_first_game` - Resume work
+### Key Commands for the Tutorial:
+- `/solve` - Compute Nash equilibria (add `summary` for AI explanation)
+- `/save <name>` - Save your current session
+- `/load <name>` - Load a previously saved session
+- `/list` - List all your saved sessions
+- `/fix` - Fix game file syntax before solving
+- `/export <path>` - Save the current game file to disk (.nfg or .efg)
 
 ## Tips
 
@@ -107,10 +109,10 @@ Try these in the chat:
 
 ## Keyboard Shortcuts
 
-- `Ctrl+Q` - Quit
-- `Ctrl+S` - Save prompt
-- `Ctrl+L` - List sessions
-- `F1` - Help
+- `Ctrl+Q` - Quit application
+- `Ctrl+S` - Show save instructions
+- `Ctrl+L` - List all saved sessions
+- `F1` - Show help message
 
 ## Troubleshooting
 

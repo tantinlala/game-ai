@@ -26,12 +26,7 @@ Before starting any development work, you MUST:
    source /Users/nicholas/game-ai/venv/bin/activate
    ```
 
-3. **If venv does not exist, create and activate it:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate
-   pip install -e .
-   ```
+3. **If venv does not exist, follow the setup instructions in [QUICKSTART.md](QUICKSTART.md#installation).**
 
 4. **Verify pytest is available:**
    ```bash
@@ -222,7 +217,7 @@ flowchart LR
     E --> F[Run test again]
     F --> G[Test passes ✓]
     G --> H[Run full test suite]
-    H --> I[All 127 tests pass ✓]
+    H --> I[All tests pass ✓]
 ```
 
 ---
@@ -362,45 +357,14 @@ def test_client(mock_model):
 
 ## Quick Reference Commands
 
-### Activate Virtual Environment
-```bash
-source /Users/nicholas/game-ai/venv/bin/activate
-```
+For a comprehensive list of all development and testing commands, see the [Development section in README.md](README.md#development).
 
-### Run All Tests
+### Core Test Commands
 ```bash
-pytest tests/
-```
-
-### Run Specific Test File
-```bash
-pytest tests/test_solver.py
-```
-
-### Run Specific Test Function
-```bash
-pytest tests/test_solver.py::test_solve_prisoners_dilemma
-```
-
-### Run Tests with Verbose Output
-```bash
-pytest tests/ -v
-```
-
-### Run Tests with Short Traceback
-```bash
-pytest tests/ --tb=short
-```
-
-### Run Tests by Marker
-```bash
-pytest tests/ -m unit      # Run only unit tests
-pytest tests/ -m ui        # Run only UI tests
-```
-
-### Check Test Coverage
-```bash
-pytest tests/ --cov=src/game_ai --cov-report=html
+pytest tests/              # Run all tests
+pytest tests/ -v           # Run with verbose output
+pytest -m unit             # Run only unit tests
+pytest -m ui               # Run only UI tests
 ```
 
 ---
@@ -430,7 +394,7 @@ Tests are not a burden—they are your safety net. They catch bugs before users 
 
 ## Reference Documents
 
-- **[TEST_COVERAGE.md](TEST_COVERAGE.md)**: Comprehensive documentation of all 127 tests across 9 test files
+- **[TEST_COVERAGE.md](TEST_COVERAGE.md)**: Comprehensive documentation of all tests and fixtures
 - **[README.md](README.md)**: Project overview and setup instructions
 - **[QUICKSTART.md](QUICKSTART.md)**: Quick start guide for using the application
 

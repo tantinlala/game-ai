@@ -1,7 +1,7 @@
 # Test Coverage Summary
 
 ## Overview
-Comprehensive pytest test suite with **132 tests** covering all modules in the game-ai project.
+Comprehensive pytest test suite covering all modules in the game-ai project.
 
 ## Test Files Created
 
@@ -15,7 +15,7 @@ Pytest configuration and shared fixtures:
 - `temp_efg_file`: Temporary EFG file
 - `mock_session_manager`: SessionManager with temp directory
 
-### 2. tests/test_validator.py (10 tests)
+### 2. tests/test_validator.py
 Tests for `game_ai.game.validator`:
 - ✅ Valid NFG validation
 - ✅ Valid EFG validation
@@ -28,7 +28,7 @@ Tests for `game_ai.game.validator`:
 - ✅ Legacy validate_nfg method
 - ✅ Legacy validate_efg method
 
-### 3. tests/test_solver.py (13 tests)
+### 3. tests/test_solver.py
 Tests for `game_ai.game.solver`:
 - ✅ SolverResult initialization
 - ✅ Adding equilibria
@@ -44,7 +44,7 @@ Tests for `game_ai.game.solver`:
 - ✅ Specific solver usage
 - ✅ Invalid solver detection
 
-### 4. tests/test_session_manager.py (10 tests)
+### 4. tests/test_session_manager.py
 Tests for `game_ai.chat.session_manager`:
 - ✅ Session saving
 - ✅ Session loading
@@ -57,7 +57,7 @@ Tests for `game_ai.chat.session_manager`:
 - ✅ Game file export
 - ✅ Directory creation for exports
 
-### 5. tests/test_command_handler.py (19 tests)
+### 5. tests/test_command_handler.py
 Tests for `game_ai.chat.command_handler`:
 - ✅ /help command
 - ✅ /save command (with and without name)
@@ -71,7 +71,7 @@ Tests for `game_ai.chat.command_handler`:
 - ✅ Command parsing with arguments
 - ✅ Case-insensitive commands
 
-### 6. tests/test_visualization_widget.py (16 tests)
+### 6. tests/test_visualization_widget.py
 Tests for `game_ai.ui.visualization_widget`:
 - ✅ Widget initialization
 - ✅ NFG content setting
@@ -88,7 +88,7 @@ Tests for `game_ai.ui.visualization_widget`:
 - ✅ Consecutive updates
 - ✅ Pygambit error handling
 
-### 7. tests/test_game_builder.py (13 tests)
+### 7. tests/test_game_builder.py
 Tests for `game_ai.ai.game_builder`:
 - ✅ Conversation start
 - ✅ Message sending without game file
@@ -104,7 +104,7 @@ Tests for `game_ai.ai.game_builder`:
 - ✅ No game content extraction
 - ✅ Conversation loading
 
-### 8. tests/test_gemini_client.py (15 tests)
+### 8. tests/test_gemini_client.py
 Tests for `game_ai.ai.gemini_client`:
 - ✅ Initialization with API key
 - ✅ Initialization from environment variable
@@ -120,7 +120,7 @@ Tests for `game_ai.ai.gemini_client`:
 - ✅ API error handling
 - ✅ Missing text in response handling
 
-### 9. tests/test_editor_widget.py (17 tests)
+### 9. tests/test_editor_widget.py
 Tests for `game_ai.ui.editor_widget`:
 - ✅ Widget initialization
 - ✅ App context setting
@@ -138,7 +138,7 @@ Tests for `game_ai.ui.editor_widget`:
 - ✅ Title updates for NFG
 - ✅ Title updates for EFG
 
-### 10. tests/test_chat_widget.py (16 tests)
+### 10. tests/test_chat_widget.py
 Tests for `game_ai.ui.chat_widget`:
 - ✅ Widget initialization
 - ✅ App context setting
@@ -157,13 +157,13 @@ Tests for `game_ai.ui.chat_widget`:
 - ✅ User message without file diff
 - ✅ Command context with game content
 
-### 11. tests/test_ai_error_fix.py (3 tests)
+### 11. tests/test_ai_error_fix.py
 Tests for automatic AI fix requests:
 - ✅ /fix error triggers AI fix
 - ✅ /solve error does not trigger AI fix
 - ✅ Other command errors do not trigger AI fix
 
-### 12. tests/test_ai_solve_summary.py (2 tests)
+### 12. tests/test_ai_solve_summary.py
 Tests for automatic AI solution summaries:
 - ✅ Successful /solve triggers AI summary request
 - ✅ Failed /solve does not trigger AI summary request
@@ -187,46 +187,29 @@ Tests for UI widgets (may require additional setup):
 
 ## Running Tests
 
-### Run all tests:
+For detailed instructions on running tests, including specific markers and coverage reports, see the [Development section in README.md](README.md#development).
+
+Basic command:
 ```bash
 pytest tests/
 ```
 
-### Run specific test file:
-```bash
-pytest tests/test_solver.py
-```
-
-### Run tests by marker:
-```bash
-pytest -m unit          # Run only unit tests
-pytest -m ui            # Run only UI tests
-```
-
-### Run with verbose output:
-```bash
-pytest tests/ -v
-```
-
-### Run with coverage report:
-```bash
-pytest tests/ --cov=src/game_ai --cov-report=html
-```
-
 ## Coverage by Module
 
-| Module | Tests | Coverage |
-|--------|-------|----------|
-| game_ai.game.validator | 10 | ✅ Complete |
-| game_ai.game.solver | 13 | ✅ Complete |
-| game_ai.chat.session_manager | 10 | ✅ Complete |
-| game_ai.chat.command_handler | 19 | ✅ Complete |
-| game_ai.ui.visualization_widget | 16 | ✅ Complete |
-| game_ai.ui.editor_widget | 17 | ✅ Complete |
-| game_ai.ui.chat_widget | 16 | ✅ Complete |
-| game_ai.ai.game_builder | 13 | ✅ Complete |
-| game_ai.ai.gemini_client | 15 | ✅ Complete |
-| **TOTAL** | **127** | **✅ Complete** |
+| Module | Coverage |
+|--------|----------|
+| game_ai.game.validator | ✅ Complete |
+| game_ai.game.solver | ✅ Complete |
+| game_ai.chat.session_manager | ✅ Complete |
+| game_ai.chat.command_handler | ✅ Complete |
+| game_ai.ui.visualization_widget | ✅ Complete |
+| game_ai.ui.editor_widget | ✅ Complete |
+| game_ai.ui.chat_widget | ✅ Complete |
+| game_ai.ai.game_builder | ✅ Complete |
+| game_ai.ai.gemini_client | ✅ Complete |
+| game_ai.ai.solve_summary | ✅ Complete |
+| game_ai.ai.error_fix | ✅ Complete |
+| **TOTAL** | **✅ Complete** |
 
 ## Key Testing Patterns
 
@@ -300,8 +283,7 @@ markers =
 
 ## Test Quality Metrics
 
-- **Test Count**: 127 tests
-- **Pass Rate**: 100% (127/127 passing)
+- **Pass Rate**: 100% passing
 - **Coverage**: All core modules covered
 - **Test Types**: Unit, Integration, UI
 - **Mocking**: Comprehensive mocking of external dependencies

@@ -1,0 +1,18 @@
+EFG 2 R "Simplified Poker"
+{ "Player 1" "Player 2" }
+
+c "Deal" 1 "(0,1)" { "High" 0.5 "Low" 0.5 } 0
+p "P1 has High" 1 1 "(1,1)" { "Bet" "Check" } 0
+p "P2 after Bet" 2 1 "(2,1)" { "Call" "Fold" } 0
+t "High Bet Called" 1 "Showdown" { 2 -2 }
+t "High Bet Folded" 2 "P2 Folds" { 1 -1 }
+p "P2 after Check" 2 2 "(2,2)" { "Bet" "Check" } 0
+t "High Check-Bet" 3 "P1 Wins" { 1 -1 }
+t "High Check-Check" 4 "Showdown" { 1 -1 }
+p "P1 has Low" 1 2 "(1,2)" { "Bet" "Check" } 0
+p "P2 after Low Bet" 2 3 "(2,3)" { "Call" "Fold" } 0
+t "Low Bet Called" 5 "Showdown" { -2 2 }
+t "Low Bet Folded" 6 "P2 Folds" { 1 -1 }
+p "P2 after Low Check" 2 4 "(2,4)" { "Bet" "Check" } 0
+t "Low Check-Bet" 7 "P2 Wins" { -1 1 }
+t "Low Check-Check" 8 "Showdown" { -1 1 }

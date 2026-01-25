@@ -8,23 +8,10 @@ from .ui.app import run_app
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Game AI - AI-powered game theory builder",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="Game AI - AI-powered game theory builder in the terminal",
         epilog="""
-Examples:
-  game-ai                    # Start the application
-  game-ai --api-key YOUR_KEY # Use a specific API key
-
-Commands (inside the app):
-  /help          - Show available commands
-  /save <name>   - Save current session
-  /load <name>   - Load saved session
-  /solve         - Compute Nash equilibria
-  /export <path> - Export game file
-  /clear         - Clear session
-  /fix           - Fix game file
-
-For more information, visit: https://github.com/tantinlala/game-ai
+For detailed command reference and tutorials, see: https://github.com/tantinlala/game-ai
+Type /help inside the application for a list of all available slash commands.
 """
     )
     
