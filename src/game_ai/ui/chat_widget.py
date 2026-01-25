@@ -140,11 +140,10 @@ class ChatWidget(Vertical):
         else:
             self.display_error_message(result['message'])
             
-            # For validation or solve errors, automatically ask AI to fix them
-            if command.startswith(('/validate', '/solve')):
-                self.display_system_message("Sending error details to AI for fixing...")
+            # Automatically ask AI to fix errors
+            if command.startswith('/fix'):
+                self.display_system_message("Sending errors to AI for fixing...")
                 fix_prompt = (
-                    f"Executing {command} failed with the following errors:\n\n"
                     f"{result['message']}\n\n"
                     f"Please fix the game file to resolve these issues."
                 )

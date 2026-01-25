@@ -89,35 +89,35 @@ class TestCommandHandler:
         assert result['success'] is True
         # May be empty or have sessions from other tests
     
-    def test_cmd_validate_valid(self, command_handler, sample_context):
-        """Test /validate with valid game."""
-        result = command_handler.handle_command("/validate", sample_context)
+    def test_cmd_fix_valid(self, command_handler, sample_context):
+        """Test /fix with valid game."""
+        result = command_handler.handle_command("/fix", sample_context)
         
         assert result['success'] is True
         assert "valid" in result['message'].lower()
     
-    def test_cmd_validate_invalid(self, command_handler, invalid_nfg):
-        """Test /validate with invalid game."""
+    def test_cmd_fix_invalid(self, command_handler, invalid_nfg):
+        """Test /fix with invalid game."""
         context = {
             'conversation_history': [],
             'game_content': invalid_nfg,
             'game_type': 'nfg'
         }
         
-        result = command_handler.handle_command("/validate", context)
+        result = command_handler.handle_command("/fix", context)
         
         assert result['success'] is False
-        assert "Validation Errors" in result['message']
+        assert "Fix Errors" in result['message']
     
-    def test_cmd_validate_no_content(self, command_handler):
-        """Test /validate without game content."""
+    def test_cmd_fix_no_content(self, command_handler):
+        """Test /fix without game content."""
         context = {
             'conversation_history': [],
             'game_content': '',
             'game_type': None
         }
         
-        result = command_handler.handle_command("/validate", context)
+        result = command_handler.handle_command("/fix", context)
         
         assert result['success'] is False
         assert "No game file" in result['message']

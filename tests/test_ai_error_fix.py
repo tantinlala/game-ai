@@ -8,8 +8,8 @@ from game_ai.ui.chat_widget import ChatWidget
 class TestAIErrorFix:
     """Tests for automatic AI fix requests."""
     
-    def test_validate_error_triggers_ai_fix(self):
-        """Test that /validate error automatically triggers AI fix request."""
+    def test_fix_error_triggers_ai_fix(self):
+        """Test that /fix error automatically triggers AI fix request."""
         widget = ChatWidget()
         mock_command_handler = Mock()
         mock_command_handler.handle_command.return_value = {
@@ -27,7 +27,7 @@ class TestAIErrorFix:
         widget.display_error_message = Mock()
         widget.display_system_message = Mock()
         
-        widget.handle_command("/validate")
+        widget.handle_command("/fix")
         
         # Should display error message
         widget.display_error_message.assert_called_with('Syntax error at line 1')
@@ -35,11 +35,10 @@ class TestAIErrorFix:
         # Should also trigger AI fix request
         widget.process_ai_response.assert_called_once()
         args, _ = widget.process_ai_response.call_args
-        assert "Executing /validate failed" in args[0]
         assert "Syntax error at line 1" in args[0]
 
-    def test_solve_error_triggers_ai_fix(self):
-        """Test that /solve error automatically triggers AI fix request."""
+    def test_solve_error_does_not_trigger_ai_fix(self):
+        """Test that /solve error does NOT trigger AI fix request."""
         widget = ChatWidget()
         mock_command_handler = Mock()
         mock_command_handler.handle_command.return_value = {
@@ -62,11 +61,8 @@ class TestAIErrorFix:
         # Should display error message
         widget.display_error_message.assert_called_with('Solver error: inconsistent data')
         
-        # Should also trigger AI fix request
-        widget.process_ai_response.assert_called_once()
-        args, _ = widget.process_ai_response.call_args
-        assert "Executing /solve failed" in args[0]
-        assert "Solver error: inconsistent data" in args[0]
+        # Should NOT trigger AI fix request
+        widget.process_ai_response.assert_not_called()
 
     def test_other_command_error_does_not_trigger_ai_fix(self):
         """Test that errors from other commands do NOT trigger AI fix request."""

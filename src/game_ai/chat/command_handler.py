@@ -24,7 +24,7 @@ class CommandHandler:
             'solve': self.cmd_solve,
             'export': self.cmd_export,
             'clear': self.cmd_clear,
-            'validate': self.cmd_validate,
+            'fix': self.cmd_fix,
         }
     
     def handle_command(
@@ -66,7 +66,7 @@ class CommandHandler:
 • `/solve [solver]` - Compute Nash equilibria for current game
   - Optional solvers: `enumpure`, `enummixed`, `lcp`, `lp`, `liap`, `gnm`
   - Example: `/solve lcp` or just `/solve` for auto-selection
-• `/validate` - Validate current game file syntax
+• `/fix` - Fix current game file syntax
 • `/export <path>` - Export game file to disk (e.g., /export game.nfg)
 • `/clear` - Clear current session and start fresh
 
@@ -80,7 +80,7 @@ class CommandHandler:
 
 **Tips:**
 - Manual edits to the game file are sent as context with your next message
-- Use `/validate` before `/solve` to check for errors
+- Use `/fix` before `/solve` to check for errors
 - Save your work frequently with `/save`
 """
         return {
@@ -176,17 +176,17 @@ class CommandHandler:
         # Parse solver argument if provided
         solver = args.strip() if args.strip() else None
         
-        # Validate first
+        # Fix/Check for errors first
         errors = GameValidator.validate(game_content)
         if errors:
-            error_text = "**Game file has validation errors:**\n\n"
+            error_text = "**Game file has fix errors:**\n\n"
             for error in errors[:5]:  # Show first 5 errors
                 error_text += f"• {str(error)}\n"
             
             if len(errors) > 5:
                 error_text += f"\n...and {len(errors) - 5} more error(s)"
             
-            error_text += "\n\nFix these errors before solving. Use `/validate` for details."
+            error_text += "\n\nFix these errors before solving. Use `/fix` for details."
             
             return {
                 'success': False,
@@ -364,14 +364,14 @@ class CommandHandler:
             'data': {'action': 'clear'}
         }
     
-    def cmd_validate(self, args: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate current game file."""
+    def cmd_fix(self, args: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Fix/Check current game file."""
         game_content = context.get('game_content', '').strip()
         
         if not game_content:
             return {
                 'success': False,
-                'message': "No game file to validate. Create a game first through conversation."
+                'message': "No game file to fix. Create a game first through conversation."
             }
         
         errors = GameValidator.validate(game_content)
@@ -383,7 +383,7 @@ class CommandHandler:
                 'message': f"✓ Game file is valid! ({game_type})"
             }
         
-        error_text = "**Validation Errors:**\n\n"
+        error_text = "**Fix Errors:**\n\n"
         for error in errors:
             error_text += f"• {str(error)}\n"
         

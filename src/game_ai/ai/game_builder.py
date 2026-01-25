@@ -50,7 +50,7 @@ I'll help you build game theory models in strategic form (.nfg) or extensive for
 - "Create a coordination game about technology standards"
 
 **Available commands:**
-Type `/help` at any time to see available commands like `/solve`, `/save`, `/validate`, etc.
+Type `/help` at any time to see available commands like `/solve`, `/save`, `/fix`, etc.
 
 **Editor Tips:**
 - Drag and then use ctrl+c to copy text.

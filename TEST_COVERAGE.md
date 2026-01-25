@@ -63,7 +63,7 @@ Tests for `game_ai.chat.command_handler`:
 - ✅ /save command (with and without name)
 - ✅ /load command (existing and nonexistent)
 - ✅ /list command (with and without sessions)
-- ✅ /validate command (valid, invalid, no content)
+- ✅ /fix command (valid, invalid, no content)
 - ✅ /solve command (valid, no content, with solver arg)
 - ✅ /export command (with and without path)
 - ✅ /clear command
@@ -159,8 +159,8 @@ Tests for `game_ai.ui.chat_widget`:
 
 ### 11. tests/test_ai_error_fix.py (3 tests)
 Tests for automatic AI fix requests:
-- ✅ /validate error triggers AI fix
-- ✅ /solve error triggers AI fix
+- ✅ /fix error triggers AI fix
+- ✅ /solve error does not trigger AI fix
 - ✅ Other command errors do not trigger AI fix
 
 ## Test Markers

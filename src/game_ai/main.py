@@ -22,7 +22,7 @@ Commands (inside the app):
   /solve         - Compute Nash equilibria
   /export <path> - Export game file
   /clear         - Clear session
-  /validate      - Validate game file
+  /fix           - Fix game file
 
 For more information, visit: https://github.com/tantinlala/game-ai
 """

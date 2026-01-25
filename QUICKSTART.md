@@ -86,7 +86,7 @@ The AI will compute and display Nash equilibria with probabilities and payoffs.
 Try these in the chat:
 
 - `/help` - See all commands
-- `/validate` - Check game file syntax
+- `/fix` - Fix game file syntax
 - `/export game.nfg` - Save to file
 - `/list` - See saved sessions
 - `/load my_first_game` - Resume work
@@ -96,7 +96,7 @@ Try these in the chat:
 1. **Edit Manually**: You can edit the game file directly in the right pane
 2. **Real Data**: Ask AI to find real-world numbers (e.g., "What's the profit margin for retail?")
 3. **Iterate**: Build games step-by-step, the AI remembers context
-4. **Validate First**: Use `/validate` before `/solve` to catch errors
+4. **Fix First**: Use `/fix` before `/solve` to catch errors
 
 ## Example Prompts
 
@@ -132,7 +132,7 @@ pip install -e .
 ```
 
 **No Equilibria Found?**
-- Use `/validate` to check for errors
+- Use `/fix` to check for errors
 - Some complex games may not converge
 - Try simplifying the game structure
 

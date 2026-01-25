@@ -275,7 +275,7 @@ class TestChatWidgetContextHandling:
             'message': 'Done'
         }
         
-        widget.handle_command("/validate")
+        widget.handle_command("/fix")
         
         # Check that context was passed with game content
         call_args = mock_command_handler.handle_command.call_args

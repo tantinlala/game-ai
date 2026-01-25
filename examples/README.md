@@ -26,7 +26,7 @@ A simplified poker game with imperfect information.
 You can load these games in the application by:
 
 1. Copying the content into the editor pane
-2. Using `/validate` to check the file
+2. Using `/fix` to check the file
 3. Using `/solve` to compute Nash equilibria
 4. Modifying values and resolving
 
