@@ -2,6 +2,8 @@
 
 AI-powered game theory builder for creating strategic form (.nfg) and extensive form (.efg) games using natural language chat interface.
 
+![Screenshot](images/game-ai-screenshot.png)
+
 ## Features
 
 - Interactive terminal UI with split-pane view (chat + editor + visualizer)

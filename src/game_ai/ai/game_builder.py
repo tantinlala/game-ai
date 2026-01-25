@@ -37,17 +37,17 @@ class GameBuilder:
 
     I help you build strategic form (.nfg) or extensive form (.efg) games to predict how actors behave in your scenario. I will not provide equilibrium predictions here; use `/solve` to run Gambit once the file is ready. For real-world scenarios, I'll automatically ground numbers (costs, probabilities, market shares) using search and state assumptions if data is missing.
 
-    **To get started, tell me:**
+    To get started, tell me:
     - What is the scenario and who are the actors?
     - What are they deciding between (simultaneous vs sequential moves)?
     - Any key constraints or outcomes that matter?
 
     I'll infer sensible defaults and only ask brief clarifications if something is blocking.
 
-    **Available commands:**
+    Available commands:
     Type `/help` at any time to see commands like `/solve`, `/save`, `/fix`, etc.
 
-    **Editor Tips:**
+    Editor Tips:
     - Drag and then use ctrl+c to copy text.
     - Use ctrl+z and ctrl+y to undo/redo edits.
 
