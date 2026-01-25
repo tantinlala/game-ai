@@ -202,11 +202,16 @@ class ChatWidget(Vertical):
             file_diff: Optional file diff.
         """
         try:
+            if not self.game_builder:
+                self.display_error_message("Error: Game builder not initialized")
+                return
+            
             response = self.game_builder.send_message(message, file_diff=file_diff)
             
             # Update editor if new content
             if response.get('file_content'):
-                self.editor_widget.set_content(response['file_content'])
+                if self.editor_widget:
+                    self.editor_widget.set_content(response['file_content'])
                 self.last_editor_content = response['file_content']
             
             # Display response
