@@ -388,7 +388,7 @@ class VisualizationWidget(VerticalScroll):
         # Player node
         else:
             player = node.player
-            player_index = player.number - 1  # Players are 1-indexed in pygambit
+            player_index = player.number  # Players are 0-indexed in pygambit
             player_color = self._get_player_color(player_index)
             current_player_color = player_color
             

@@ -303,18 +303,53 @@ class GameSolver:
     @staticmethod
     def _get_infoset_label(infoset) -> str:
         """Get a human-readable label for an information set.
-        
+
         Args:
             infoset: PyGambit infoset object.
-            
+
         Returns:
             Best available label for the information set.
         """
         # Get the infoset label directly from the infoset object
         # This corresponds to the infoset label in the EFG file (e.g., "EntryDecision")
         label = str(infoset.label) if infoset.label else ""
-        
+
         return label if label else "Decision"
+
+    @staticmethod
+    def _get_unique_infoset_labels(player) -> Dict:
+        """Build a mapping from infoset to unique label for a player.
+
+        When multiple infosets share the same label, disambiguates using
+        the member node label (e.g., "User Reaction (Users vs StatusQuo)").
+
+        Args:
+            player: PyGambit player object.
+
+        Returns:
+            Dict mapping infoset to unique label string.
+        """
+        # Count label occurrences
+        label_counts: Dict[str, int] = {}
+        for infoset in player.infosets:
+            label = GameSolver._get_infoset_label(infoset)
+            label_counts[label] = label_counts.get(label, 0) + 1
+
+        # Build unique labels
+        labels = {}
+        for infoset in player.infosets:
+            label = GameSolver._get_infoset_label(infoset)
+            if label_counts[label] > 1:
+                # Disambiguate using member node label
+                members = list(infoset.members)
+                if members and members[0].label and members[0].label.strip():
+                    label = f"{label} ({members[0].label})"
+                else:
+                    # Fallback: append infoset number
+                    label = f"{label} #{infoset.number + 1}"
+            labels[infoset] = label
+
+        return labels
     
     @staticmethod
     def _format_equilibrium(game, equilibrium) -> Dict[str, Any]:
@@ -339,17 +374,18 @@ class GameSolver:
             # Behavior strategy profile - format by infosets and actions
             for player in game.players:
                 player_strats = {}
+                unique_labels = GameSolver._get_unique_infoset_labels(player)
                 for infoset in player.infosets:
-                    infoset_label = GameSolver._get_infoset_label(infoset)
+                    infoset_label = unique_labels[infoset]
                     for action in infoset.actions:
                         prob = float(equilibrium[action])
                         action_label = f"{infoset_label}:{action.label}" if infoset_label else action.label
                         player_strats[action_label] = prob
-                        
+
                         # Check if this is a mixed strategy
                         if prob > 0 and prob < 1:
                             eq_data['is_pure'] = False
-                
+
                 eq_data['strategies'][player.label] = player_strats
         else:
             # Mixed strategy profile - format by strategies
@@ -369,17 +405,18 @@ class GameSolver:
                     behavior_profile = equilibrium.as_behavior()
                     for player in game.players:
                         player_strats = {}
+                        unique_labels = GameSolver._get_unique_infoset_labels(player)
                         for infoset in player.infosets:
-                            infoset_label = GameSolver._get_infoset_label(infoset)
+                            infoset_label = unique_labels[infoset]
                             for action in infoset.actions:
                                 prob = float(behavior_profile[action])
                                 action_label = f"{infoset_label}:{action.label}" if infoset_label else action.label
                                 player_strats[action_label] = prob
-                                
+
                                 # Check if this is a mixed strategy
                                 if prob > 0 and prob < 1:
                                     eq_data['is_pure'] = False
-                        
+
                         eq_data['strategies'][player.label] = player_strats
                 except Exception:
                     # Fallback to mixed strategy format if conversion fails
