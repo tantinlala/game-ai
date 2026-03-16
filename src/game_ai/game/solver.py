@@ -279,27 +279,33 @@ class GameSolver:
                             solver_errors.append(f"{solver_name}: {str(e)}")
                 
                 # Process equilibria
+                formatted = []
                 for eq in equilibria:
                     eq_data = GameSolver._format_equilibrium(game, eq)
+                    formatted.append(eq_data)
+
+                # Merge equilibria that differ only in off-path actions
+                merged = GameSolver._merge_efg_equilibria(game, formatted)
+                for eq_data in merged:
                     result.add_equilibrium(eq_data)
-                
+
                 if not result.equilibria:
                     error_msg = "No Nash equilibria found."
                     if solver_errors:
                         error_msg += "\n\nSolver errors encountered:\n" + "\n".join(f"• {err}" for err in solver_errors[:3])
                     result.set_error(error_msg)
-            
+
             finally:
                 # Clean up temporary file
                 os.unlink(temp_path)
-        
+
         except ImportError:
             result.set_error("PyGambit not installed. Run: pip install pygambit")
         except Exception as e:
             result.set_error(f"Error solving game: {str(e)}")
-        
+
         return result
-    
+
     @staticmethod
     def _get_infoset_label(infoset) -> str:
         """Get a human-readable label for an information set.
@@ -452,5 +458,109 @@ class GameSolver:
         except Exception:
             # If payoff calculation fails, skip it
             pass
-        
+
         return eq_data
+
+    @staticmethod
+    def _get_on_path_actions(game, eq_data: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
+        """Extract only on-path actions from an equilibrium's strategy profile.
+
+        Walks the game tree following the chosen actions to determine which
+        information sets are actually reached on the equilibrium path.
+
+        Args:
+            game: PyGambit game object.
+            eq_data: Formatted equilibrium data with 'strategies' dict.
+
+        Returns:
+            Dict mapping player label to dict of on-path action_label:prob pairs.
+        """
+        # Build lookup: infoset -> unique label (matching _format_equilibrium keys)
+        infoset_labels = {}
+        for player in game.players:
+            unique = GameSolver._get_unique_infoset_labels(player)
+            for infoset, label in unique.items():
+                infoset_labels[infoset] = label
+
+        # Walk tree to find on-path infosets
+        on_path_infosets = set()
+
+        def walk(node):
+            if node.is_terminal:
+                return
+            infoset = node.infoset
+            if infoset.is_chance:
+                # All chance branches are on-path
+                for action in infoset.actions:
+                    child_idx = list(infoset.actions).index(action)
+                    walk(node.children[child_idx])
+                return
+
+            on_path_infosets.add(infoset)
+            player_label = node.player.label
+            iset_label = infoset_labels.get(infoset, "")
+
+            # Find which action is chosen (prob > 0.99 for pure)
+            player_strats = eq_data['strategies'].get(player_label, {})
+            for i, action in enumerate(infoset.actions):
+                action_key = f"{iset_label}:{action.label}" if iset_label else action.label
+                prob = player_strats.get(action_key, 0)
+                if prob > 0:
+                    walk(node.children[i])
+
+        walk(game.root)
+
+        # Filter strategies to on-path only
+        on_path = {}
+        for player in game.players:
+            unique = GameSolver._get_unique_infoset_labels(player)
+            player_strats = eq_data['strategies'].get(player.label, {})
+            filtered = {}
+            for infoset in player.infosets:
+                if infoset not in on_path_infosets:
+                    continue
+                iset_label = unique[infoset]
+                for action in infoset.actions:
+                    key = f"{iset_label}:{action.label}" if iset_label else action.label
+                    if key in player_strats:
+                        filtered[key] = player_strats[key]
+            on_path[player.label] = filtered
+
+        return on_path
+
+    @staticmethod
+    def _merge_efg_equilibria(game, equilibria: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Merge equilibria that share the same on-path outcome.
+
+        Equilibria in extensive form games can differ only in off-path actions
+        (actions at unreached information sets). These are strategically
+        equivalent from the players' perspective and are merged into one.
+
+        Args:
+            game: PyGambit game object.
+            equilibria: List of formatted equilibrium dicts.
+
+        Returns:
+            Deduplicated list with off-path actions removed from strategies.
+        """
+        seen = {}  # on-path signature -> merged eq_data
+        merged = []
+
+        for eq in equilibria:
+            on_path = GameSolver._get_on_path_actions(game, eq)
+
+            # Build a hashable signature from on-path actions
+            sig_parts = []
+            for player_label in sorted(on_path.keys()):
+                for action_key in sorted(on_path[player_label].keys()):
+                    sig_parts.append((player_label, action_key, on_path[player_label][action_key]))
+            sig = tuple(sig_parts)
+
+            if sig not in seen:
+                # Replace full strategies with on-path only
+                merged_eq = dict(eq)
+                merged_eq['strategies'] = on_path
+                seen[sig] = merged_eq
+                merged.append(merged_eq)
+
+        return merged
