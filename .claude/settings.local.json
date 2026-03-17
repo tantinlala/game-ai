@@ -3,7 +3,8 @@
     "allow": [
       "Bash(source /Users/nicholas/game-ai/venv/bin/activate)",
       "Bash(python3 -m pytest tests/test_solver_efg.py -v)",
-      "Bash(python3 -m pytest tests/ -q)"
+      "Bash(python3 -m pytest tests/ -q)",
+      "Bash(python3 -m pytest tests/ -x -q)"
     ]
   }
 }

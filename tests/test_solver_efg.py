@@ -53,6 +53,17 @@ def _load_game(efg_content):
         os.unlink(path)
 
 
+# Imperfect information: P2 can't distinguish P1's action (same info set)
+IMPERFECT_INFO_EFG = """EFG 2 R "Imperfect Info" { "P1" "P2" }
+p "" 1 1 "P1Move" { "L" "R" } 0
+p "After L" 2 1 "P2Move" { "A" "B" } 0
+t "" 1 "" { 2, 1 }
+t "" 2 "" { 0, 0 }
+p "After R" 2 1 "P2Move" { "A" "B" } 0
+t "" 3 "" { 0, 0 }
+t "" 4 "" { 1, 2 }"""
+
+
 # -- Unique infoset label tests --
 
 @pytest.mark.unit
@@ -188,6 +199,26 @@ class TestSubgamePerfection:
                     elif "Ads" in node_label:
                         if action.label == "Churn":
                             assert prob > 0.99
+
+    def test_imperfect_info_no_spurious_filtering(self):
+        """In a game with no proper subgames (besides the whole game),
+        SPNE should equal NE — no equilibria should be filtered out."""
+        game = _load_game(IMPERFECT_INFO_EFG)
+
+        # P2's info set has 2 members, so no node below the root starts a
+        # proper subgame. SPNE cannot refine beyond NE.
+        raw = list(gbt.nash.enumpure_solve(game).equilibria)
+        spne = [eq for eq in raw if GameSolver._is_subgame_perfect(game, eq)]
+
+        assert len(spne) == len(raw), \
+            f"No proper subgames exist, so all {len(raw)} NE should be SPNE, got {len(spne)}"
+
+    def test_imperfect_info_multi_member_infoset(self):
+        """Verify the game fixture actually has a multi-member info set."""
+        game = _load_game(IMPERFECT_INFO_EFG)
+        p2_infosets = list(game.players[1].infosets)
+        assert len(p2_infosets) == 1
+        assert len(list(p2_infosets[0].members)) == 2
 
 
 # -- On-path merging tests --

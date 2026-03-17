@@ -365,9 +365,13 @@ class GameSolver:
     def _is_subgame_perfect(game, equilibrium) -> bool:
         """Check if an equilibrium is subgame perfect.
 
-        Verifies sequential rationality: at every information set, the
-        action(s) played with positive probability must be optimal given
-        the continuation strategy. This implies subgame perfection.
+        Uses the one-shot deviation principle: a strategy profile is SPNE
+        iff no player can profitably deviate at any single information set
+        within any proper subgame. Proper subgames are identified by finding
+        nodes that are singleton information sets with subtrees closed under
+        all information sets.
+
+        This correctly handles both perfect and imperfect information games.
 
         Args:
             game: PyGambit game object.
@@ -387,21 +391,60 @@ class GameSolver:
 
         num_players = len(game.players)
 
-        def node_value(node):
-            """Compute expected payoff vector at a node under the profile."""
+        def get_subtree(node):
+            """Collect all nodes in the subtree rooted at node."""
+            nodes = set()
+            stack = [node]
+            while stack:
+                n = stack.pop()
+                nodes.add(n)
+                if not n.is_terminal:
+                    for child in n.children:
+                        stack.append(child)
+            return nodes
+
+        def is_subgame_root(node):
+            """Check if node is the root of a proper subgame."""
+            if node.is_terminal:
+                return False
+            infoset = node.infoset
+            # Chance nodes or singleton player info sets can start subgames
+            if not infoset.is_chance and len(list(infoset.members)) != 1:
+                return False
+            # Subtree must be closed: every player info set that intersects
+            # the subtree must have ALL its members within the subtree
+            nodes = get_subtree(node)
+            for n in nodes:
+                if n.is_terminal or n.infoset.is_chance:
+                    continue
+                for member in n.infoset.members:
+                    if member not in nodes:
+                        return False
+            return True
+
+        def node_payoff(node, override_infoset=None, override_action_idx=None):
+            """Compute expected payoff vector from a node under the profile.
+
+            If override_infoset/override_action_idx are set, the player
+            deviates to that action at that info set (one-shot deviation).
+            """
             if node.is_terminal:
                 outcome = node.outcome
                 if outcome:
                     return tuple(float(outcome[p]) for p in game.players)
-                return tuple(0.0 for _ in range(num_players))
+                return (0.0,) * num_players
 
             infoset = node.infoset
             val = [0.0] * num_players
 
             for i, action in enumerate(infoset.actions):
-                child_val = node_value(node.children[i])
+                child_val = node_payoff(
+                    node.children[i], override_infoset, override_action_idx
+                )
                 if infoset.is_chance:
                     prob = float(action.prob)
+                elif override_infoset is not None and infoset == override_infoset:
+                    prob = 1.0 if i == override_action_idx else 0.0
                 else:
                     prob = float(behavior[action])
                 for j in range(num_players):
@@ -409,21 +452,27 @@ class GameSolver:
 
             return tuple(val)
 
-        # Check each player's info sets for sequential rationality
-        for player in game.players:
-            pidx = player.number
-            for infoset in player.infosets:
-                # Compute payoff from each action at each member node
-                for member in infoset.members:
-                    action_payoffs = []
-                    for i in range(len(infoset.actions)):
-                        child_val = node_value(member.children[i])
-                        action_payoffs.append(child_val[pidx])
+        # Find all proper subgame roots
+        all_nodes = get_subtree(game.root)
+        subgame_roots = [n for n in all_nodes if is_subgame_root(n)]
 
-                    best = max(action_payoffs)
-                    for i, action in enumerate(infoset.actions):
-                        if float(behavior[action]) > 0 and action_payoffs[i] < best - 1e-6:
-                            return False
+        # Check for profitable one-shot deviations in each subgame
+        for sg_root in subgame_roots:
+            sg_nodes = get_subtree(sg_root)
+            current_payoff = node_payoff(sg_root)
+
+            # Collect player info sets within this subgame
+            infosets_in_sg = set()
+            for n in sg_nodes:
+                if not n.is_terminal and not n.infoset.is_chance:
+                    infosets_in_sg.add(n.infoset)
+
+            for infoset in infosets_in_sg:
+                pidx = infoset.player.number
+                for aidx in range(len(infoset.actions)):
+                    dev_payoff = node_payoff(sg_root, infoset, aidx)
+                    if dev_payoff[pidx] > current_payoff[pidx] + 1e-6:
+                        return False
 
         return True
 
