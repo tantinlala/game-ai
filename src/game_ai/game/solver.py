@@ -278,9 +278,13 @@ class GameSolver:
                         except Exception as e:
                             solver_errors.append(f"{solver_name}: {str(e)}")
                 
+                # Filter to subgame perfect equilibria
+                spne = [eq for eq in equilibria
+                        if GameSolver._is_subgame_perfect(game, eq)]
+
                 # Process equilibria
                 formatted = []
-                for eq in equilibria:
+                for eq in (spne if spne else equilibria):
                     eq_data = GameSolver._format_equilibrium(game, eq)
                     formatted.append(eq_data)
 
@@ -357,6 +361,72 @@ class GameSolver:
 
         return labels
     
+    @staticmethod
+    def _is_subgame_perfect(game, equilibrium) -> bool:
+        """Check if an equilibrium is subgame perfect.
+
+        Verifies sequential rationality: at every information set, the
+        action(s) played with positive probability must be optimal given
+        the continuation strategy. This implies subgame perfection.
+
+        Args:
+            game: PyGambit game object.
+            equilibrium: PyGambit equilibrium profile.
+
+        Returns:
+            True if the equilibrium is subgame perfect.
+        """
+        # Get or convert to behavior strategy profile
+        if hasattr(equilibrium, 'infoset_prob'):
+            behavior = equilibrium
+        else:
+            try:
+                behavior = equilibrium.as_behavior()
+            except Exception:
+                return True  # Can't verify, keep it
+
+        num_players = len(game.players)
+
+        def node_value(node):
+            """Compute expected payoff vector at a node under the profile."""
+            if node.is_terminal:
+                outcome = node.outcome
+                if outcome:
+                    return tuple(float(outcome[p]) for p in game.players)
+                return tuple(0.0 for _ in range(num_players))
+
+            infoset = node.infoset
+            val = [0.0] * num_players
+
+            for i, action in enumerate(infoset.actions):
+                child_val = node_value(node.children[i])
+                if infoset.is_chance:
+                    prob = float(action.prob)
+                else:
+                    prob = float(behavior[action])
+                for j in range(num_players):
+                    val[j] += prob * child_val[j]
+
+            return tuple(val)
+
+        # Check each player's info sets for sequential rationality
+        for player in game.players:
+            pidx = player.number
+            for infoset in player.infosets:
+                # Compute payoff from each action at each member node
+                for member in infoset.members:
+                    action_payoffs = []
+                    for i in range(len(infoset.actions)):
+                        child_val = node_value(member.children[i])
+                        action_payoffs.append(child_val[pidx])
+
+                    best = max(action_payoffs)
+                    for i, action in enumerate(infoset.actions):
+                        if float(behavior[action]) > 0 and action_payoffs[i] < best - 1e-6:
+                            return False
+
+        return True
+
     @staticmethod
     def _format_equilibrium(game, equilibrium) -> Dict[str, Any]:
         """Format equilibrium for display.
