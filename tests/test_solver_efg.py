@@ -1,11 +1,12 @@
 """Tests for EFG solver features: unique infoset labels, SPNE filtering, and on-path merging."""
 
-import pytest
-import tempfile
 import os
-import pygambit as gbt
+import tempfile
 
-from game_ai.game.solver import GameSolver, SolverResult
+import pygambit as gbt
+import pytest
+
+from game_ai.game.solver import GameSolver
 
 
 # -- Fixtures --

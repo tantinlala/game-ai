@@ -168,12 +168,29 @@ Tests for automatic AI solution summaries:
 - ✅ Successful /solve triggers AI summary request
 - ✅ Failed /solve does not trigger AI summary request
 
+### 13. tests/test_solver_efg.py
+Tests for EFG-specific solver behavior in `game_ai.game.solver`:
+- ✅ Unique infoset label disambiguation for duplicate labels
+- ✅ Disambiguated labels include node/member context
+- ✅ Existing unique infoset labels remain unchanged
+- ✅ Formatted equilibria retain all infoset actions
+- ✅ Subgame-perfect equilibrium (SPNE) filtering removes non-credible threats
+- ✅ Credible backward-induction equilibria are preserved
+- ✅ Sequential game SPNE payoff validation
+- ✅ Imperfect-information games are not spuriously filtered
+- ✅ Multi-member infoset fixture sanity check
+- ✅ On-path action extraction from equilibria
+- ✅ Merging equilibria that differ only off-path
+- ✅ Preserving distinct on-path outcomes after merge
+- ✅ Regression check: NFG solving remains unaffected by EFG logic
+
 ## Test Markers
 
 ### Unit Tests (@pytest.mark.unit)
 Tests for individual components in isolation with mocked dependencies:
 - test_validator.py (all)
 - test_solver.py (all)
+- test_solver_efg.py (all)
 - test_session_manager.py (all)
 - test_command_handler.py (all)
 - test_game_builder.py (all)
