@@ -282,9 +282,18 @@ class GameSolver:
                 spne = [eq for eq in equilibria
                         if GameSolver._is_subgame_perfect(game, eq)]
 
+                if not spne:
+                    error_msg = "No subgame-perfect equilibria found among computed equilibria."
+                    if equilibria:
+                        error_msg += f"\n\nComputed {len(equilibria)} Nash equilibria, but none satisfied subgame perfection."
+                    if solver_errors:
+                        error_msg += "\n\nSolver errors encountered:\n" + "\n".join(f"• {err}" for err in solver_errors[:3])
+                    result.set_error(error_msg)
+                    return result
+
                 # Process equilibria
                 formatted = []
-                for eq in (spne if spne else equilibria):
+                for eq in spne:
                     eq_data = GameSolver._format_equilibrium(game, eq)
                     formatted.append(eq_data)
 
@@ -294,10 +303,7 @@ class GameSolver:
                     result.add_equilibrium(eq_data)
 
                 if not result.equilibria:
-                    error_msg = "No Nash equilibria found."
-                    if solver_errors:
-                        error_msg += "\n\nSolver errors encountered:\n" + "\n".join(f"• {err}" for err in solver_errors[:3])
-                    result.set_error(error_msg)
+                    result.set_error("No subgame-perfect equilibria found.")
 
             finally:
                 # Clean up temporary file
