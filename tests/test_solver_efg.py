@@ -211,22 +211,22 @@ class TestSubgamePerfection:
         """
         ICE_STANDOFF_EFG = """EFG 2 R "Minnesota ICE Standoff - Sequential Escalation" { "Trump Administration" "Gov. Tim Walz" }
 
-p "Trump Initial" 1 1 "Operation Metro Surge" { "Maintain Surge" "Withdraw/Scale Back" } 0
+    p "Trump Initial" 1 1 "Operation Metro Surge" { "Maintain Surge" "Withdraw/Scale Back" } 0
 
-p "Walz Legal" 2 1 "Legal Response" { "Pursue Injunctions" "No Legal Obstruction" } 0
+    p "Walz Legal" 2 1 "Legal Response" { "Pursue Injunctions" "No Legal Obstruction" } 0
 
-p "Walz Guard" 2 2 "Guard Deployment" { "Guard Shield (Blockade)" "Guard Standby (Security)" } 0
+    p "Walz Guard" 2 2 "Guard Deployment" { "Guard Shield (Blockade)" "Guard Standby (Security)" } 0
 
-p "Trump Final" 1 2 "Federal Reaction" { "Insurrection Act" "Economic Sanctions Only" "De-escalate" } 0
+    p "Trump Final" 1 2 "Federal Reaction" { "Insurrection Act" "Economic Sanctions Only" "De-escalate" } 0
 
-t "Total Conflict" 1 "Outcome: Civil War" { 60 -100 }
-t "Economic Siege" 2 "Outcome: Funding Starvation" { 80 -70 }
-t "Federal Retreat" 3 "Outcome: State Sovereignty" { -30 90 }
+    t "Total Conflict" 1 "Outcome: Civil War" { 60, -100 }
+    t "Economic Siege" 2 "Outcome: Funding Starvation" { 80, -70 }
+    t "Federal Retreat" 3 "Outcome: State Sovereignty" { -30, 90 }
 
-t "Legal Victory" 4 "Outcome: Court Ordered Halt" { 20 60 }
-t "Yielded Control" 5 "Outcome: Federal Dominance" { 100 10 }
+    t "Legal Victory" 4 "Outcome: Court Ordered Halt" { 20, 60 }
+    t "Yielded Control" 5 "Outcome: Federal Dominance" { 100, 10 }
 
-t "Peaceful Exit" 6 "Outcome: Early De-escalation" { 30 70 }"""
+    t "Peaceful Exit" 6 "Outcome: Early De-escalation" { 30, 70 }"""
 
         result = GameSolver.solve_from_content(ICE_STANDOFF_EFG)
         assert result.is_success(), f"Expected SPNE but got error: {result.error}"
