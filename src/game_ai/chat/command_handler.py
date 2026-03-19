@@ -154,7 +154,7 @@ class CommandHandler:
         for session in sessions:
             saved_at = session['saved_at'][:19] if len(session['saved_at']) >= 19 else session['saved_at']
             game_type = session.get('game_type', 'Unknown').upper()
-            message += f"• **{session['name']}** ({game_type}) - {saved_at}\n"
+            message += f"- **{session['name']}** ({game_type}) - {saved_at}\n"
         
         message += f"\nTotal: {len(sessions)} session(s)\nUse `/load <name>` to load a session."
         

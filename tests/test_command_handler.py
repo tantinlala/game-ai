@@ -81,6 +81,17 @@ class TestCommandHandler:
         assert result['success'] is True
         assert 'Saved Sessions' in result['message']
         assert 'session1' in result['message'] or 'session2' in result['message']
+
+    def test_cmd_list_uses_markdown_bullets(self, command_handler, sample_context):
+        """Test /list renders each session as a markdown bullet item."""
+        command_handler.handle_command("/save session1", sample_context)
+        command_handler.handle_command("/save session2", sample_context)
+
+        result = command_handler.handle_command("/list", sample_context)
+
+        assert result['success'] is True
+        assert "\n- **session1**" in result['message']
+        assert "\n- **session2**" in result['message']
     
     def test_cmd_list_empty(self, command_handler, sample_context):
         """Test /list when no sessions exist."""
