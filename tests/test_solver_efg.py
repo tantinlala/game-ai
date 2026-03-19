@@ -143,10 +143,9 @@ class TestSubgamePerfection:
         assert eq['payoffs']['Users'] == pytest.approx(7.0)
 
     def test_simple_sequential_game_spne(self):
-        """In P1→L, P2→A game: backward induction gives P1→R (payoff 1,2)
-        since P2 plays B after L (payoff 0,0 < 1,2 doesn't apply—
-        P2 plays A(1) vs B(0), so L→A gives (3,1). R gives (1,2).
-        P2 plays A, so P1 picks L for 3 > 1. SPNE: L,A with payoffs (3,1)."""
+        """Backward induction: P2 prefers A (payoff 2) over B (payoff 0), so P2 plays A.
+        Given P2 plays A, P1 gets 3 from L vs 1 from R, so P1 plays L.
+        SPNE: (P1→L, P2→A) with payoffs (3, 1)."""
         result = GameSolver.solve_from_content(SIMPLE_SEQUENTIAL_EFG)
         assert result.is_success()
         assert len(result.equilibria) >= 1
