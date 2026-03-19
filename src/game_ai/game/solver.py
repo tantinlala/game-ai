@@ -433,6 +433,12 @@ class GameSolver:
 
             If override_infoset/override_action_idx are set, the player
             deviates to that action at that info set (one-shot deviation).
+
+            For off-path infosets where the solver returns all-zero probabilities
+            (a degenerate "don't care" assignment), backward induction is used:
+            the player is assumed to play their best response at that node.
+            This correctly handles equilibria where an information set is never
+            reached on the equilibrium path.
             """
             if node.is_terminal:
                 outcome = node.outcome
@@ -441,6 +447,18 @@ class GameSolver:
                 return (0.0,) * num_players
 
             infoset = node.infoset
+
+            # For off-path player infosets with degenerate (all-zero) probabilities,
+            # use backward induction (best response) rather than summing 0*payoff=0.
+            if (not infoset.is_chance and
+                    (override_infoset is None or infoset != override_infoset) and
+                    sum(float(behavior[a]) for a in infoset.actions) < 1e-10):
+                pidx = infoset.player.number
+                child_vals = [node_payoff(node.children[i], override_infoset, override_action_idx)
+                              for i in range(len(infoset.actions))]
+                best_idx = max(range(len(infoset.actions)), key=lambda i: child_vals[i][pidx])
+                return child_vals[best_idx]
+
             val = [0.0] * num_players
 
             for i, action in enumerate(infoset.actions):

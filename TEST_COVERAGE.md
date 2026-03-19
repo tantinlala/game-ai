@@ -177,6 +177,7 @@ Tests for EFG-specific solver behavior in `game_ai.game.solver`:
 - ✅ Subgame-perfect equilibrium (SPNE) filtering removes non-credible threats
 - ✅ Credible backward-induction equilibria are preserved
 - ✅ Sequential game SPNE payoff validation
+- ✅ Degenerate off-path strategies (all-zero probs) not falsely rejected as non-SPNE
 - ✅ Imperfect-information games are not spuriously filtered
 - ✅ Multi-member infoset fixture sanity check
 - ✅ On-path action extraction from equilibria
