@@ -188,3 +188,149 @@ class TestVisualizationMethods:
         
         # Should display error
         assert widget._content_widget.update.called
+
+
+# EFG with imperfect information: both P2 nodes after "Bet" share infoset 1,
+# and both P2 nodes after "Check" share infoset 2 (matches simplified_poker.efg).
+SHARED_INFOSET_EFG = """EFG 2 R "Simplified Poker" { "Player 1" "Player 2" }
+c "Deal" 1 "Nature's Deal" { "High Card" 0.5 "Low Card" 0.5 } 0
+p "P1 Has High" 1 1 "P1 Sees Card" { "Bet" "Check" } 0
+p "P2 Faces Bet" 2 1 "P2 Responds to Bet" { "Call" "Fold" } 0
+t "Showdown After Call" 1 "P1 Wins Showdown" { 2, -2 }
+t "P2 Folds to Bet" 2 "P2 Concedes" { 1, -1 }
+p "P2 After Check" 2 2 "P2 After P1 Checks" { "Bet" "Check" } 0
+t "P2 Bets After Check" 3 "P2 Wins Uncontested" { -1, 1 }
+t "Both Check" 4 "Showdown No Bets" { 1, -1 }
+p "P1 Has Low" 1 1 "P1 Sees Card" { "Bet" "Check" } 0
+p "P2 Faces Bluff" 2 1 "P2 Responds to Bet" { "Call" "Fold" } 0
+t "Bluff Called" 5 "P2 Catches Bluff" { -2, 2 }
+t "Bluff Works" 6 "P2 Concedes" { 1, -1 }
+p "P2 After Low Check" 2 2 "P2 After P1 Checks" { "Bet" "Check" } 0
+t "P2 Bets vs Low" 7 "P2 Takes Pot" { -1, 1 }
+t "Both Check Low" 8 "P2 Wins Showdown" { -1, 1 }"""
+
+
+@pytest.mark.unit
+class TestCollectInfosetMap:
+    """Tests for _collect_infoset_map method."""
+
+    def _parse_efg(self, content):
+        """Helper: parse EFG content into a pygambit game."""
+        import pygambit as gbt
+        import tempfile
+        import os
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.efg', delete=False) as f:
+            f.write(content)
+            temp_path = f.name
+        try:
+            return gbt.read_efg(temp_path)
+        finally:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+
+    def test_all_player_infosets_included(self, sample_efg):
+        """Every player infoset (even singletons) should appear in the map."""
+        game = self._parse_efg(sample_efg)
+        widget = VisualizationWidget()
+        infoset_map = widget._collect_infoset_map(game.root)
+        # sample_efg (conftest) gives every player node its own infoset;
+        # all of them must now be present.
+        assert len(infoset_map) > 0
+
+    def test_detects_shared_player_infosets(self):
+        """Infosets shared by multiple nodes get a display label."""
+        game = self._parse_efg(SHARED_INFOSET_EFG)
+        widget = VisualizationWidget()
+        infoset_map = widget._collect_infoset_map(game.root)
+        # There are 2 non-trivial player infosets (P1 infoset 1, P2 infoset 1,
+        # P2 infoset 2) — at minimum 2 unique display labels should be assigned.
+        assert len(infoset_map) >= 2
+
+    def test_shared_nodes_map_to_same_label(self):
+        """Both nodes in the same infoset must resolve to the identical label."""
+        game = self._parse_efg(SHARED_INFOSET_EFG)
+        widget = VisualizationWidget()
+        infoset_map = widget._collect_infoset_map(game.root)
+
+        # Collect all infoset objects reachable from the root
+        seen_infosets: dict = {}
+        def collect(node):
+            if node.is_terminal:
+                return
+            if node.infoset and not node.infoset.is_chance:
+                seen_infosets.setdefault(node.infoset, []).append(node)
+            for action in node.infoset.actions:
+                collect(node.children[action.number])
+        collect(game.root)
+
+        # For every infoset it must appear in infoset_map
+        for infoset, nodes in seen_infosets.items():
+            assert infoset in infoset_map, (
+                f"Infoset missing from map"
+            )
+            # All nodes with that infoset share the same label
+            labels = {infoset_map[infoset]}
+            assert len(labels) == 1
+
+    def test_display_labels_are_unique(self):
+        """Each distinct non-trivial infoset gets a unique display label."""
+        game = self._parse_efg(SHARED_INFOSET_EFG)
+        widget = VisualizationWidget()
+        infoset_map = widget._collect_infoset_map(game.root)
+        labels = list(infoset_map.values())
+        assert len(labels) == len(set(labels))
+
+    def test_chance_infosets_excluded(self):
+        """Chance nodes' infosets must never appear in the map."""
+        game = self._parse_efg(SHARED_INFOSET_EFG)
+        widget = VisualizationWidget()
+        infoset_map = widget._collect_infoset_map(game.root)
+        for infoset in infoset_map:
+            assert not infoset.is_chance
+
+
+@pytest.mark.unit
+class TestInfosetIdRendering:
+    """Tests that infoset IDs appear in the EFG tree visualization."""
+
+    def test_shared_infoset_nodes_show_id(self):
+        """Nodes belonging to a non-trivial infoset should carry an ID tag."""
+        widget = VisualizationWidget()
+        widget._content_widget = Mock()
+        widget.set_content(SHARED_INFOSET_EFG)
+        assert widget._content_widget.update.called
+
+        # Capture the rendered Rich objects
+        call_args = widget._content_widget.update.call_args[0][0]
+        # Render to plain text so we can inspect labels
+        from io import StringIO
+        from rich.console import Console
+        buf = StringIO()
+        console = Console(file=buf, no_color=True, width=200)
+        console.print(call_args)
+        rendered = buf.getvalue()
+
+        # At least one infoset label like "[I1]" or "[I2]" should appear
+        import re
+        assert re.search(r'\[I\d+\]', rendered), (
+            "Expected infoset ID tags (e.g. [I1]) in rendered EFG tree"
+        )
+
+    def test_singleton_infoset_nodes_show_id(self, sample_efg):
+        """Nodes in singleton infosets should also carry ID tags."""
+        widget = VisualizationWidget()
+        widget._content_widget = Mock()
+        widget.set_content(sample_efg)
+
+        call_args = widget._content_widget.update.call_args[0][0]
+        from io import StringIO
+        from rich.console import Console
+        import re
+        buf = StringIO()
+        console = Console(file=buf, no_color=True, width=200)
+        console.print(call_args)
+        rendered = buf.getvalue()
+
+        assert re.search(r'\[I\d+\]', rendered), (
+            "Infoset ID tags expected even when all infosets are singletons"
+        )

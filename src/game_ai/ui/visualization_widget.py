@@ -265,6 +265,35 @@ class VisualizationWidget(VerticalScroll):
         
         return text
     
+    def _collect_infoset_map(self, root_node) -> dict:
+        """Collect a mapping of all player infosets to display labels.
+        
+        Every player (non-chance) infoset is assigned a unique display label
+        regardless of how many nodes it contains.
+        
+        Args:
+            root_node: Root node of the game tree.
+            
+        Returns:
+            Dict mapping infoset objects to display labels (e.g., "I1").
+        """
+        seen_infosets: list = []
+        
+        def traverse(node):
+            if node.is_terminal:
+                return
+            if node.infoset and not node.infoset.is_chance:
+                infoset = node.infoset
+                if infoset not in seen_infosets:
+                    seen_infosets.append(infoset)
+            if node.infoset:
+                for action in node.infoset.actions:
+                    traverse(node.children[action.number])
+        
+        traverse(root_node)
+        
+        return {infoset: f"I{idx + 1}" for idx, infoset in enumerate(seen_infosets)}
+
     def _has_chance_nodes(self, node) -> bool:
         """Recursively check if game tree has any chance nodes.
         
@@ -322,8 +351,9 @@ class VisualizationWidget(VerticalScroll):
                 header.append("\n\n")
                 
                 # Create tree visualization
+                infoset_map = self._collect_infoset_map(game.root)
                 tree = Tree("🎮 Game Tree", guide_style="bold bright_blue")
-                self._build_tree_from_game(tree, game.root, game)
+                self._build_tree_from_game(tree, game.root, game, infoset_map)
                 
                 if self._content_widget:
                     self._content_widget.update(Group(header, tree))
@@ -335,13 +365,14 @@ class VisualizationWidget(VerticalScroll):
         except Exception as e:
             raise ValueError(f"Failed to parse EFG content: {str(e)}")
     
-    def _build_tree_from_game(self, parent_tree, node, game):
+    def _build_tree_from_game(self, parent_tree, node, game, infoset_map=None):
         """Recursively build Rich Tree from pygambit game tree.
         
         Args:
             parent_tree: Parent Tree or tree node to attach to.
             node: Current pygambit game node.
             game: PyGambit game object.
+            infoset_map: Optional dict mapping infoset objects to display labels.
         """
         # Terminal node
         if node.is_terminal:
@@ -407,6 +438,10 @@ class VisualizationWidget(VerticalScroll):
                 if i > 0:
                     label.append(" - ", style="white dim")
                 label.append(text, style=style)
+            
+            # Append infoset ID if this node belongs to a non-trivial infoset
+            if infoset_map and node.infoset in infoset_map:
+                label.append(f" [{infoset_map[node.infoset]}]", style=f"{player_color} bold")
         
         # Add node to parent
         tree_node = parent_tree.add(label)
@@ -427,5 +462,5 @@ class VisualizationWidget(VerticalScroll):
             child = node.children[action.number]
             
             # Recursively add child nodes under this action branch
-            self._build_tree_from_game(branch, child, game)
+            self._build_tree_from_game(branch, child, game, infoset_map)
 
