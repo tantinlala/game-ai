@@ -167,6 +167,13 @@ class TestCommandHandler:
         assert result['success'] is True
         assert result['data'].get('request_summary') is True
 
+    def test_cmd_solve_with_removed_long_flag_is_invalid_solver(self, command_handler, sample_context):
+        """Test /solve no longer accepts removed long summary flags."""
+        result = command_handler.handle_command("/solve --summarize", sample_context)
+
+        assert result['success'] is False
+        assert "Unknown solver: --summarize" in result['message']
+
     def test_cmd_solve_with_both_args(self, command_handler, sample_context):
         """Test /solve with both solver and summary flag."""
         # Order shouldn't strictly matter for summary, but solver should be first non-summary arg

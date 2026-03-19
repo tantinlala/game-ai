@@ -65,7 +65,7 @@ class CommandHandler:
 • `/list` - List all saved sessions
 • `/solve [solver] [summary]` - Compute Nash equilibria for current game
   - Optional solvers: `enumpure`, `enummixed`, `lcp`, `lp`, `liap`, `gnm`
-  - Optional `summary`: Add `summary` or `--summary` to get AI explanation
+  - Optional `summary`: Add `summary` to get AI explanation
   - Example: `/solve lcp summary` or just `/solve summary`
 • `/fix` - Fix current game file syntax
 • `/export <path>` - Export game file to disk (e.g., /export game.nfg)
@@ -180,7 +180,7 @@ class CommandHandler:
         
         args_parts = args.strip().split()
         for part in args_parts:
-            if part.lower() in ('summary', '--summary'):
+            if part.lower() == 'summary':
                 request_summary = True
             elif solver is None:  # First non-summary part is treated as solver
                 solver = part

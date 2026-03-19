@@ -8,8 +8,8 @@ from game_ai.ui.chat_widget import ChatWidget
 class TestAISolveSummary:
     """Tests for automatic AI solution summaries."""
     
-    def test_solve_success_triggers_ai_summary(self):
-        """Test that successful /solve automatically triggers AI summary request."""
+    def test_solve_success_triggers_ai_summary_with_game_file_context(self):
+        """Test that successful /solve summary includes solve output and full game file."""
         widget = ChatWidget()
         mock_command_handler = Mock()
         
@@ -26,7 +26,8 @@ class TestAISolveSummary:
         
         widget.command_handler = mock_command_handler
         widget.editor_widget = Mock()
-        widget.editor_widget.get_content.return_value = "NFG content"
+        game_content = "NFG 1 R \"PD\" { \"Alice\" \"Bob\" } { 2 2 }\n\n1 1 0 3 3 0 2 2"
+        widget.editor_widget.get_content.return_value = game_content
         widget.game_builder = Mock()
         widget.game_builder.get_conversation_history.return_value = []
         
@@ -44,6 +45,8 @@ class TestAISolveSummary:
         args, _ = widget.process_ai_response.call_args
         assert "summarize each nash equilibria found" in args[0].lower()
         assert solve_message in args[0]
+        assert "Here is the full game file" in args[0]
+        assert game_content in args[0]
 
     def test_solve_success_without_summary_does_not_trigger_ai_summary(self):
         """Test that /solve without summary does NOT trigger AI summary request."""

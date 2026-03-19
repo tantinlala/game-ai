@@ -145,6 +145,8 @@ class ChatWidget(Vertical):
                 summary_prompt = (
                     f"I have computed the Nash equilibria for the game. Here is the solution summary:\n\n"
                     f"{result['message']}\n\n"
+                    f"Here is the full game file the solution was computed from:\n\n"
+                    f"```\n{current_editor_content}\n```\n\n"
                     f"Please summarize each Nash equilibria found in plain English, explaining what it means for the players."
                 )
                 self.process_ai_response(summary_prompt, None)

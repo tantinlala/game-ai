@@ -65,6 +65,7 @@ Tests for `game_ai.chat.command_handler`:
 - ✅ /list command (with and without sessions)
 - ✅ /fix command (valid, invalid, no content)
 - ✅ /solve command (valid, no content, with solver arg)
+- ✅ /solve summary argument (`summary`)
 - ✅ /export command (with and without path)
 - ✅ /clear command
 - ✅ Unknown command handling
@@ -173,6 +174,7 @@ Tests for automatic AI fix requests:
 ### 12. tests/test_ai_solve_summary.py
 Tests for automatic AI solution summaries:
 - ✅ Successful /solve triggers AI summary request
+- ✅ /solve summary prompt includes full game file context
 - ✅ Failed /solve does not trigger AI summary request
 
 ### 13. tests/test_solver_efg.py
