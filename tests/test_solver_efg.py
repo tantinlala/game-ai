@@ -200,6 +200,45 @@ class TestSubgamePerfection:
                         if action.label == "Churn":
                             assert prob > 0.99
 
+    def test_degenerate_offpath_strategy_not_false_filtered(self):
+        """When enumpure_solve returns all-zero probabilities for an off-path
+        infoset, the equilibrium should NOT be incorrectly rejected.
+
+        In the ICE Standoff game, Trump Final is off-path when Trump plays
+        Withdraw/Scale Back. enumpure_solve returns (0,0,0) at Trump Final.
+        The backward-induction SPNE is: Trump→Withdraw, Walz→(Pursue,GuardStandby),
+        yielding Peaceful Exit (30, 70).
+        """
+        ICE_STANDOFF_EFG = """EFG 2 R "Minnesota ICE Standoff - Sequential Escalation" { "Trump Administration" "Gov. Tim Walz" }
+
+    p "Trump Initial" 1 1 "Operation Metro Surge" { "Maintain Surge" "Withdraw/Scale Back" } 0
+
+    p "Walz Legal" 2 1 "Legal Response" { "Pursue Injunctions" "No Legal Obstruction" } 0
+
+    p "Walz Guard" 2 2 "Guard Deployment" { "Guard Shield (Blockade)" "Guard Standby (Security)" } 0
+
+    p "Trump Final" 1 2 "Federal Reaction" { "Insurrection Act" "Economic Sanctions Only" "De-escalate" } 0
+
+    t "Total Conflict" 1 "Outcome: Civil War" { 60, -100 }
+    t "Economic Siege" 2 "Outcome: Funding Starvation" { 80, -70 }
+    t "Federal Retreat" 3 "Outcome: State Sovereignty" { -30, 90 }
+
+    t "Legal Victory" 4 "Outcome: Court Ordered Halt" { 20, 60 }
+    t "Yielded Control" 5 "Outcome: Federal Dominance" { 100, 10 }
+
+    t "Peaceful Exit" 6 "Outcome: Early De-escalation" { 30, 70 }"""
+
+        result = GameSolver.solve_from_content(ICE_STANDOFF_EFG)
+        assert result.is_success(), f"Expected SPNE but got error: {result.error}"
+        assert len(result.equilibria) >= 1, "Should find at least one SPNE"
+
+        # The unique SPNE ends at Peaceful Exit: Trump withdraws (30, 70)
+        payoffs = [(eq['payoffs']['Trump Administration'], eq['payoffs']['Gov. Tim Walz'])
+                   for eq in result.equilibria]
+        assert (pytest.approx(30.0), pytest.approx(70.0)) in [
+            (pytest.approx(p1), pytest.approx(p2)) for p1, p2 in payoffs
+        ], f"Expected SPNE payoff (30, 70) but got: {payoffs}"
+
     def test_imperfect_info_no_spurious_filtering(self):
         """In a game with no proper subgames (besides the whole game),
         SPNE should equal NE — no equilibria should be filtered out."""
