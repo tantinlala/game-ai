@@ -439,7 +439,7 @@ class VisualizationWidget(VerticalScroll):
                     label.append(" - ", style="white dim")
                 label.append(text, style=style)
             
-            # Append infoset ID if this node belongs to a non-trivial infoset
+            # Append infoset ID
             if infoset_map and node.infoset in infoset_map:
                 label.append(f" [{infoset_map[node.infoset]}]", style=f"{player_color} bold")
         

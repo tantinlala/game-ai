@@ -242,9 +242,9 @@ class TestCollectInfosetMap:
         game = self._parse_efg(SHARED_INFOSET_EFG)
         widget = VisualizationWidget()
         infoset_map = widget._collect_infoset_map(game.root)
-        # There are 2 non-trivial player infosets (P1 infoset 1, P2 infoset 1,
+        # There are 3 non-trivial player infosets (P1 infoset 1, P2 infoset 1,
         # P2 infoset 2) — at minimum 2 unique display labels should be assigned.
-        assert len(infoset_map) >= 2
+        assert len(infoset_map) >= 3
 
     def test_shared_nodes_map_to_same_label(self):
         """Both nodes in the same infoset must resolve to the identical label."""
@@ -268,9 +268,15 @@ class TestCollectInfosetMap:
             assert infoset in infoset_map, (
                 f"Infoset missing from map"
             )
-            # All nodes with that infoset share the same label
-            labels = {infoset_map[infoset]}
-            assert len(labels) == 1
+
+        # For infosets shared by multiple nodes, all nodes must map to the same label
+        shared_infosets = {infoset: nodes for infoset, nodes in seen_infosets.items() if len(nodes) > 1}
+        assert len(shared_infosets) >= 1, "Expected at least one shared infoset in SHARED_INFOSET_EFG fixture"
+        for infoset, nodes in shared_infosets.items():
+            labels = {infoset_map[node.infoset] for node in nodes}
+            assert len(labels) == 1, (
+                f"Nodes in the same infoset map to different labels: {labels}"
+            )
 
     def test_display_labels_are_unique(self):
         """Each distinct non-trivial infoset gets a unique display label."""
