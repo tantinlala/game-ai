@@ -87,6 +87,13 @@ Tests for `game_ai.ui.visualization_widget`:
 - ✅ Invalid visualization
 - ✅ Consecutive updates
 - ✅ Pygambit error handling
+- ✅ `_collect_infoset_map` includes singleton infosets
+- ✅ `_collect_infoset_map` detects shared player infosets
+- ✅ `_collect_infoset_map` maps both nodes in the same infoset to the same label
+- ✅ `_collect_infoset_map` assigns unique labels to distinct infosets
+- ✅ `_collect_infoset_map` excludes chance infosets
+- ✅ EFG tree renders `[In]` ID tags for nodes in non-trivial infosets
+- ✅ EFG tree renders `[In]` ID tags even when all infosets are singletons
 
 ### 7. tests/test_game_builder.py
 Tests for `game_ai.ai.game_builder`:
