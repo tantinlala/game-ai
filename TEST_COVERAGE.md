@@ -65,7 +65,7 @@ Tests for `game_ai.chat.command_handler`:
 - ✅ /list command (with and without sessions)
 - ✅ /fix command (valid, invalid, no content)
 - ✅ /solve command (valid, no content, with solver arg)
-- ✅ /solve summary flags (`summary`, `--summary`, `--summarize`)
+- ✅ /solve summary argument (`summary`)
 - ✅ /export command (with and without path)
 - ✅ /clear command
 - ✅ Unknown command handling
