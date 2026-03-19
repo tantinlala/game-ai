@@ -197,12 +197,19 @@ class TestCommandHandler:
         assert result['success'] is False
         assert "provide a file path" in result['message']
     
-    def test_cmd_clear(self, command_handler, sample_context):
-        """Test /clear command."""
+    def test_cmd_clear_removed(self, command_handler, sample_context):
+        """Test /clear command has been removed in favor of /new."""
         result = command_handler.handle_command("/clear", sample_context)
-        
+
+        assert result['success'] is False
+        assert "Unknown command: /clear" in result['message']
+
+    def test_cmd_new(self, command_handler, sample_context):
+        """Test /new command."""
+        result = command_handler.handle_command("/new", sample_context)
+
         assert result['success'] is True
-        assert "cleared" in result['message'].lower()
+        assert "new" in result['message'].lower()
         assert result['data']['action'] == 'clear'
     
     def test_unknown_command(self, command_handler, sample_context):
