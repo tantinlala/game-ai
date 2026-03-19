@@ -233,9 +233,21 @@ class TestCollectInfosetMap:
         game = self._parse_efg(sample_efg)
         widget = VisualizationWidget()
         infoset_map = widget._collect_infoset_map(game.root)
-        # sample_efg (conftest) gives every player node its own infoset;
-        # all of them must now be present.
-        assert len(infoset_map) > 0
+        expected_infosets = set()
+
+        def collect(node):
+            if node.is_terminal:
+                return
+            if node.infoset and not node.infoset.is_chance:
+                expected_infosets.add(node.infoset)
+            for action in node.infoset.actions:
+                collect(node.children[action.number])
+
+        collect(game.root)
+
+        assert expected_infosets, "Expected at least one non-chance infoset in sample_efg"
+        assert set(infoset_map.keys()) == expected_infosets
+        assert len(infoset_map) == len(expected_infosets)
 
     def test_detects_shared_player_infosets(self):
         """Infosets shared by multiple nodes get a display label."""
