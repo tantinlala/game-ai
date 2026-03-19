@@ -21,9 +21,9 @@ class CommandHandler:
             'save': self.cmd_save,
             'load': self.cmd_load,
             'list': self.cmd_list,
+            'new': self.cmd_new,
             'solve': self.cmd_solve,
             'export': self.cmd_export,
-            'clear': self.cmd_clear,
             'fix': self.cmd_fix,
         }
     
@@ -59,25 +59,25 @@ class CommandHandler:
         """Show help for available commands."""
         help_text = """**Available Commands:**
 
-• `/help` - Show this help message
-• `/save <name>` - Save current session with given name
-• `/load <name>` - Load a saved session
-• `/list` - List all saved sessions
-• `/solve [solver] [summary]` - Compute Nash equilibria for current game
+- `/help` - Show this help message
+- `/save <name>` - Save current session with given name
+- `/load <name>` - Load a saved session
+- `/list` - List all saved sessions
+- `/new` - Start a new clean session
+- `/solve [solver] [summary]` - Compute Nash equilibria for current game
   - Optional solvers: `enumpure`, `enummixed`, `lcp`, `lp`, `liap`, `gnm`
   - Optional `summary`: Add `summary` to get AI explanation
   - Example: `/solve lcp summary` or just `/solve summary`
-• `/fix` - Fix current game file syntax
-• `/export <path>` - Export game file to disk (e.g., /export game.nfg)
-• `/clear` - Clear current session and start fresh
+- `/fix` - Fix current game file syntax
+- `/export <path>` - Export game file to disk (e.g., /export game.nfg)
 
 **Available Solvers:**
-• `enumpure` - Pure strategy enumeration (all games)
-• `enummixed` - Mixed strategy enumeration (2-player)
-• `lcp` - Linear complementarity (2-player, most reliable)
-• `lp` - Linear programming (2-player zero-sum)
-• `liap` - Lyapunov minimization (N-player)
-• `gnm` - Global Newton method (N-player)
+- `enumpure` - Pure strategy enumeration (all games)
+- `enummixed` - Mixed strategy enumeration (2-player)
+- `lcp` - Linear complementarity (2-player, most reliable)
+- `lp` - Linear programming (2-player zero-sum)
+- `liap` - Lyapunov minimization (N-player)
+- `gnm` - Global Newton method (N-player)
 
 **Tips:**
 - Manual edits to the game file are sent as context with your next message
@@ -368,11 +368,11 @@ class CommandHandler:
                 'message': f"Failed to export game file to: {filepath}"
             }
     
-    def cmd_clear(self, args: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Clear current session."""
+    def cmd_new(self, args: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Start a new clean session."""
         return {
             'success': True,
-            'message': "Session cleared. Starting fresh!",
+            'message': "New clean session loaded. Starting fresh!",
             'data': {'action': 'clear'}
         }
     
